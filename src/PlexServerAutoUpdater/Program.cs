@@ -16,31 +16,31 @@ namespace TE.Plex
 		[STAThread]
 		private static void Main(string[] args)
 		{
+			Arguments arguments = new Arguments(args);
+			
+			bool isSilent = (arguments["silent"] != null);
+			
 			WindowsUser user = new WindowsUser();
 			
 			// Check if the user running this application is an administrator
 			if (!user.IsAdministrator())
 			{
-				// If the user is not an administrator, then exit
-				MessageBox.Show(
-					"This application must be run from an administrative account.",
-					"Plex Server Updater",
-					MessageBoxButtons.OK,
-					MessageBoxIcon.Stop);
-				Application.Exit();
-			}
-			else
-			{
-				Arguments arguments = new Arguments(args);
-				
-				if (arguments["silent"] == null)
+				if (!isSilent)
 				{
-					// Display the main form if the user is an administrator
-					Application.EnableVisualStyles();
-					Application.SetCompatibleTextRenderingDefault(false);
-					Application.Run(new MainForm());
+					// If the user is not an administrator, then exit
+					MessageBox.Show(
+						"This application must be run from an administrative account.",
+						"Plex Server Updater",
+						MessageBoxButtons.OK,
+						MessageBoxIcon.Stop);
 				}
-				else
+				
+				Environment.Exit(SystemExitCodes.ERROR_ACCESS_DENIED);
+			}
+			
+			if (isSilent)
+			{
+				try
 				{
 					MediaServer server = new MediaServer(true);
 					
@@ -49,7 +49,17 @@ namespace TE.Plex
 						server.Update();
 					}
 				}
-				
+				catch
+				{
+					Environment.Exit(-1);
+				}
+			}
+			else
+			{
+				// Display the main form if the user is an administrator
+				Application.EnableVisualStyles();
+				Application.SetCompatibleTextRenderingDefault(false);
+				Application.Run(new MainForm());
 			}
 		}
 		

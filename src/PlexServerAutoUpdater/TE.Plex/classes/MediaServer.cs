@@ -241,7 +241,7 @@ namespace TE.Plex
 			
 			DirectoryInfo latestFolder = 
 				new DirectoryInfo(this.UpdatesFolder).GetDirectories()
-                       .OrderByDescending(d=>d.LastWriteTimeUtc).First();
+					.OrderByDescending(d=>d.LastWriteTimeUtc).First();
 
 			string packagesFullPath = latestFolder.FullName;
 			if (!packagesFullPath.EndsWith(@"\", StringComparison.OrdinalIgnoreCase))
@@ -274,10 +274,22 @@ namespace TE.Plex
 		/// <returns>
 		/// The full path to the local Plex data folder.
 		/// </returns>
+		/// <exception cref="System.InvalidOperationException">
+		/// The Plex service ID could not be found.
+		/// </exception>
+		/// <exception cref="System.IO.DirectoryNotFoundException">
+		/// The local data folder could not be found.
+		/// </exception>
 		private string GetLocalDataFolder(ServerService service)
 		{
 			// Get the unique user SID for the Plex service user
 			serviceUserSid = service.LogOnUser.GetSid();
+			
+			if (string.IsNullOrEmpty(serviceUserSid))
+			{
+				throw new InvalidOperationException(
+					"The Plex service user ID could not be found.");
+			}
 			
 			// Get the Plex local data folder from the users registry hive
 			// for the user ID associated with the Plex service
@@ -288,7 +300,7 @@ namespace TE.Plex
 			
 			if (string.IsNullOrEmpty(folder))
 			{
-				throw new InvalidOperationException(
+				throw new DirectoryNotFoundException(
 					"The Plex local data folder could not be determined.");
 			}
 			
@@ -357,16 +369,24 @@ namespace TE.Plex
 		/// <returns>
 		/// The installation path of Plex Media Server.
 		/// </returns>
+		/// <exception cref=" TE.Plex.AppNotInstalledException">
+		/// The Plex Media Server is not installed.
+		/// </exception>
 		private string GetInstallPath()
 		{
 			string installPath = string.Empty;
 			installPath = Api.GetComponentPathByFile(PlexExecutable);
 			
-			installPath = Path.GetDirectoryName(installPath);
-			
-			if (!installPath.EndsWith(@"\"))
+			if (!string.IsNullOrEmpty(installPath))
 			{
-				installPath += @"\";
+				installPath = Path.GetDirectoryName(installPath);
+				
+				if (!installPath.EndsWith(
+					@"\",
+					StringComparison.OrdinalIgnoreCase))
+				{
+					installPath += @"\";
+				}
 			}
 			
 			return installPath;
@@ -510,6 +530,10 @@ namespace TE.Plex
 			UpdateMessage("START: Running update: " + this.LatestInstallPackage + ".");
 			this.RunInstall();
 			UpdateMessage("END: Running update.");
+			
+			UpdateMessage("START: Stopping the Plex Server processes.");
+			this.StopProcesses();
+			UpdateMessage("END: Stopping the Plex Server processes.");
 			
 			UpdateMessage("START: Restarting the Plex service.");
 			service.Start();

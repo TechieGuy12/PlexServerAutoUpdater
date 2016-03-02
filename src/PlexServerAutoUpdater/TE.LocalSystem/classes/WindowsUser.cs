@@ -50,20 +50,23 @@ namespace TE.LocalSystem
 					"The Windows user name cannot be null or blank.");
 			}
 			
-			try
-			{
-				NTAccount account = new NTAccount(this.Name);
-				SecurityIdentifier identifier = 
-					(SecurityIdentifier)account.Translate(
-						typeof(SecurityIdentifier));
-				return identifier.Value;
-			}
-			catch
-			{
-				throw;
-			}
+			NTAccount account = new NTAccount(this.Name);
+			
+			SecurityIdentifier identifier = 
+				(SecurityIdentifier)account.Translate(
+					typeof(SecurityIdentifier));
+			
+			return identifier.Value;		
 		}
 		
+		/// <summary>
+		/// Checks to see if the user context running the application is an
+		/// administrator.
+		/// </summary>
+		/// <returns>
+		/// True if the user is an administrator, false if they are not an
+		/// administrator.
+		/// </returns>
 		public bool IsAdministrator()
 		{
 			WindowsIdentity identity = null;

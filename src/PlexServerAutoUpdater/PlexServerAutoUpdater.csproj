@@ -65,6 +65,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TE.Plex\classes\SilentUpdate.cs" />
     <Compile Include="TE\Arguments.cs" />
     <Compile Include="TE\SystemExitCodes.cs" />
   </ItemGroup>

@@ -9,7 +9,7 @@ namespace TE.Plex
 	/// Class with program entry point.
 	/// </summary>
 	internal sealed class Program
-	{
+	{				
 		/// <summary>
 		/// Program entry point.
 		/// </summary>
@@ -42,12 +42,9 @@ namespace TE.Plex
 			{
 				try
 				{
-					MediaServer server = new MediaServer(true);
+					SilentUpdate silentUpdate = new SilentUpdate();
+					silentUpdate.Run();
 					
-					if (server.IsUpdateAvailable())
-					{						
-						server.Update();
-					}
 				}
 				catch
 				{
@@ -61,7 +58,6 @@ namespace TE.Plex
 				Application.SetCompatibleTextRenderingDefault(false);
 				Application.Run(new MainForm());
 			}
-		}
-		
+		}			
 	}
 }

@@ -31,7 +31,7 @@ namespace TE.Plex
 		
 		private void ServerUpdateMessage(string message)
 		{
-			this.txtUpdateStatus.Text += message + Environment.NewLine;
+			this.txtUpdateStatus.Text += message + Environment.NewLine;			
 		}
 		#endregion
 		
@@ -39,11 +39,18 @@ namespace TE.Plex
 		private void Initialize()
 		{			
 			try
-			{					
+			{	
+				MessageBox.Show("Create MediaServer object.");				
 				this.server = new MediaServer();
+				
+				if (this.server == null)
+				{
+					this.Close();
+				}
+				
 				this.server.UpdateMessage += 
 					new MediaServer.UpdateMessageHandler(ServerUpdateMessage);
-				
+
 				lblInstalledVersion.Text = server.CurrentVersion.ToString();
 				lblLatestVersion.Text = server.LatestVersion.ToString();
 				
@@ -54,10 +61,18 @@ namespace TE.Plex
 			{
 				MessageBox.Show("MSI:" + ex.Message);
 			}
-			catch(Exception ex)
+			catch(AppNotInstalledException ex)
 			{
 				MessageBox.Show(ex.Message);
-			}			
+			}
+			catch (ServiceNotInstalledException ex)
+			{
+				MessageBox.Show(ex.Message);
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(ex.Message);
+			}
 		}
 
 		#endregion

@@ -42,8 +42,10 @@ namespace TE.Plex
 			{
 				try
 				{
+					// Run the update silently
 					SilentUpdate silentUpdate = new SilentUpdate();
 					silentUpdate.Run();
+					Environment.Exit(SystemExitCodes.ERROR_SUCCESS);
 					
 				}
 				catch
@@ -53,7 +55,7 @@ namespace TE.Plex
 			}
 			else
 			{
-				// Display the main form if the user is an administrator
+				// Display the main form
 				Application.EnableVisualStyles();
 				Application.SetCompatibleTextRenderingDefault(false);
 				Application.Run(new MainForm());

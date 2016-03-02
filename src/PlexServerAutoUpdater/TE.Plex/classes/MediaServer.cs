@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -452,16 +453,16 @@ namespace TE.Plex
 		/// </exception>
 		private void Initialize(bool isSilent)
 		{
-			this.IsSilent = isSilent;
-			this.CurrentVersion = new Version(0, 0, 0, 0);
-			this.LatestVersion = new Version(0, 0, 0, 0);
-			this.InstallFolder = this.GetInstallPath();
-
-			if (string.IsNullOrEmpty(this.InstallFolder))
+			if (this.IsInstalled())
 			{
 				throw new AppNotInstalledException(
 					"The Plex Media Server is not installed.");
 			}
+			
+			this.IsSilent = isSilent;
+			this.CurrentVersion = new Version(0, 0, 0, 0);
+			this.LatestVersion = new Version(0, 0, 0, 0);
+			this.InstallFolder = this.GetInstallPath();
 					
 			// Populate a service object with information about the Plex
 			// service
@@ -484,6 +485,18 @@ namespace TE.Plex
 					this.GetVersionFromFileName(
 						Path.GetFileName(this.LatestInstallPackage)));
 			}
+		}
+		
+		/// <summary>
+		/// Checks to see if Plex Media Server is installed.
+		/// </summary>
+		/// <returns>
+		/// True if it is installed, false if it isn't.
+		/// </returns>
+		private bool IsInstalled()
+		{
+			return ((InstalledProduct.Enumerate()
+			         .Where(product=>product.DisplayName == DisplayName)).Any());
 		}
 		
 		/// <summary>

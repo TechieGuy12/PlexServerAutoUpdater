@@ -4,3 +4,5 @@ C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\PlexServerAutoUpdater\obj\R
 C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\PlexServerAutoUpdater\obj\Release\TE.Plex.MainForm.resources
 C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\PlexServerAutoUpdater\obj\Release\PlexServerAutoUpdater.csproj.GenerateResource.Cache
 C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\PlexServerAutoUpdater\obj\Release\psupdate.exe
+C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\PlexServerAutoUpdater\bin\Release\psupdate.exe.config
+C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\PlexServerAutoUpdater\bin\Release\psupdate.exe

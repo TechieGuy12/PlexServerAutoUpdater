@@ -551,7 +551,34 @@ namespace TE.Plex
 				logFolder += @"\";
 			}
 			
-			return logFolder + PlexInstallLogFolder + PlexInstallLogFile;
+			string installLogFolder = logFolder + PlexInstallLogFolder;
+			
+			if (!Directory.Exists(installLogFolder))
+			{
+				try
+				{
+					Directory.CreateDirectory(installLogFolder);
+				}				
+				catch (IOException)
+				{
+					installLogFolder = Path.GetTempPath();
+				}
+				catch (UnauthorizedAccessException)
+				{
+					installLogFolder = Path.GetTempPath();
+				}
+				catch (NotSupportedException)
+				{
+					installLogFolder = Path.GetTempPath();
+				}
+			}
+			
+			if (!installLogFolder.EndsWith(@"\", StringComparison.OrdinalIgnoreCase))
+			{
+				installLogFolder += @"\";
+			}
+			
+			return  installLogFolder + PlexInstallLogFile;
 		}
 		
 		/// <summary>

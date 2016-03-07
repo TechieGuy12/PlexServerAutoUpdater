@@ -1,6 +1,6 @@
 # Plex Server Auto Updater
 
-The Plex Server Auto Updater application allows the Plex Media server to be updated automatically when it is run as a Windows service.
+The Plex Server Auto Updater application allows the Plex Media server to be updated automatically when it is [run as a Windows service].
 
 ## What does it do?
 When the Plex Server Auto Updater performs an update, the following tasks are done:
@@ -30,6 +30,7 @@ The easiest way to keep Plex Media Server updated is to schedule the Plex Server
 
 Of course, you can use any scheduling application with Plex Server Auto Updater by running the psupdate.exe with the -silent argument.
 
+[run as a Windows service]: https://forums.plex.tv/discussion/93994/pms-as-a-service/
 [latest release]: https://github.com/TechieGuy12/PlexServerAutoUpdater/releases/latest
 [How to Update Plex Automatically When Run as a Service]: http://technicallyeasy.net/2016/03/update-plex-automatically-running-plex-service/
 [Technically Easy]: http://technicallyeasy.net

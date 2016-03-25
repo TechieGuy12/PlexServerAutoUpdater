@@ -60,7 +60,7 @@ namespace TE.Plex
 		/// <summary>
 		/// The name of the Plex updates folder.
 		/// </summary>
-		private const string PlexUpdatesFolder = @"Plex Media Server\Updates\";
+		private const string PlexUpdatesFolder = @"Plex Media Server\Updates";
 		/// <summary>
 		/// The name of the installation packages folder.
 		/// </summary>
@@ -72,7 +72,7 @@ namespace TE.Plex
 		/// <summary>
 		/// Plex Media Server installation log subfolder.
 		/// </summary>
-		private const string PlexInstallLogFolder = @"PlexUpdater\";
+		private const string PlexInstallLogFolder = @"PlexUpdater";
 		/// <summary>
 		/// Plex Media Server installation log file name.
 		/// </summary>
@@ -87,11 +87,15 @@ namespace TE.Plex
 		private const int MaxPathSize = 256;
 		#endregion
 		
-		#region Private Variables
+		#region Private Variables	
 		/// <summary>
-		/// The SID for the Plex service log on user.
+		/// The SID of the Plex service user.
 		/// </summary>
 		private string serviceUserSid;
+		/// <summary>
+		/// The Plex service.
+		/// </summary>
+		private ServerService plexService = null;
 		#endregion
 		
 		#region Properties
@@ -287,12 +291,8 @@ namespace TE.Plex
 				new DirectoryInfo(this.UpdatesFolder).GetDirectories()
 					.OrderByDescending(d=>d.LastWriteTimeUtc).First();
 
-			string packagesFullPath = latestFolder.FullName;
-			if (!packagesFullPath.EndsWith(@"\", StringComparison.OrdinalIgnoreCase))
-			{
-				packagesFullPath += @"\";
-			}
-			packagesFullPath += PlexPackagesFolder + @"\";
+			string packagesFullPath = 
+				Path.Combine(latestFolder.FullName, PlexPackagesFolder);
 		
 			if (!Directory.Exists(packagesFullPath))
 			{
@@ -304,8 +304,8 @@ namespace TE.Plex
 			DirectoryInfo packagesFolder = new DirectoryInfo(packagesFullPath);
 			
 			FileInfo file = packagesFolder.GetFiles()
-         		.OrderByDescending(f => f.LastWriteTime)
-         		.First();
+				.OrderByDescending(f => f.LastWriteTime)
+				.First();
 		
 			return file.FullName;
 		}
@@ -313,9 +313,6 @@ namespace TE.Plex
 		/// <summary>
 		/// Gets the local Plex data folder used by the Plex service.
 		/// </summary>
-		/// <param name="service">
-		/// The Plex service object.
-		/// </param>
 		/// <returns>
 		/// The full path to the local Plex data folder.
 		/// </returns>
@@ -325,10 +322,10 @@ namespace TE.Plex
 		/// <exception cref="System.IO.DirectoryNotFoundException">
 		/// The local data folder could not be found.
 		/// </exception>
-		private string GetLocalDataFolder(ServerService service)
+		private string GetLocalDataFolder()
 		{
 			// Get the unique user SID for the Plex service user
-			serviceUserSid = service.LogOnUser.GetSid();
+			serviceUserSid = this.plexService.LogOnUser.Sid;
 			
 			if (string.IsNullOrEmpty(serviceUserSid))
 			{
@@ -345,15 +342,13 @@ namespace TE.Plex
 			
 			if (string.IsNullOrEmpty(folder))
 			{
-				throw new DirectoryNotFoundException(
-					"The Plex local data folder could not be determined.");
-			}
-			
-			// Append a slash character to the end of the folder path if
-			// one doesn't exist
-			if (!folder.EndsWith(@"\", StringComparison.OrdinalIgnoreCase))
-			{
-				folder += @"\";
+				// Default to the standard local application data folder
+				// for the Plex service user is the LocalAppDataPath value
+				// is missing from the registry
+				folder = this.plexService.LogOnUser.LocalAppDataFolder;
+				
+				//throw new DirectoryNotFoundException(
+				//	"The Plex local data folder could not be determined.");
 			}
 			
 			return folder;
@@ -428,14 +423,7 @@ namespace TE.Plex
 				// length of the operating system
 				if (installPath.Length < MaxPathSize)
 				{
-					installPath = Path.GetDirectoryName(installPath);
-					
-					if (!installPath.EndsWith(
-						@"\",
-						StringComparison.OrdinalIgnoreCase))
-					{
-						installPath += @"\";
-					}
+					installPath = Path.GetDirectoryName(installPath);					
 				}
 			}
 			
@@ -466,15 +454,23 @@ namespace TE.Plex
 					
 			// Populate a service object with information about the Plex
 			// service
-			ServerService service = new ServerService();
+			this.plexService = new ServerService();
+			
+			if (this.plexService == null)
+			{
+				throw new InvalidOperationException(
+					"The Plex service could not be found.");
+			}
 			
 			// Get the Plex folders
-			this.LocalDataFolder = GetLocalDataFolder(service);
-			this.UpdatesFolder = this.LocalDataFolder + PlexUpdatesFolder;
+			this.LocalDataFolder = GetLocalDataFolder();
+			this.UpdatesFolder = 
+				Path.Combine(this.LocalDataFolder, PlexUpdatesFolder);
 			
 			// Get the currently installed Plex Media Server version
 			this.CurrentVersion = this.ConvertFromStringToVersion(
-				this.GetVersionFromFile(this.InstallFolder + PlexExecutable));
+				this.GetVersionFromFile(
+					Path.Combine(this.InstallFolder, PlexExecutable)));
 			
 			// Get the latest Plex Media Server version that has been 
 			// downloaded
@@ -545,13 +541,9 @@ namespace TE.Plex
 		{			
 			string logFolder = Environment.GetFolderPath(
 					Environment.SpecialFolder.CommonApplicationData);
-			
-			if (!logFolder.EndsWith(@"\", StringComparison.OrdinalIgnoreCase))
-			{
-				logFolder += @"\";
-			}
-			
-			string installLogFolder = logFolder + PlexInstallLogFolder;
+						
+			string installLogFolder = 
+				Path.Combine(logFolder, PlexInstallLogFolder);
 			
 			if (!Directory.Exists(installLogFolder))
 			{
@@ -573,12 +565,7 @@ namespace TE.Plex
 				}
 			}
 			
-			if (!installLogFolder.EndsWith(@"\", StringComparison.OrdinalIgnoreCase))
-			{
-				installLogFolder += @"\";
-			}
-			
-			return  installLogFolder + PlexInstallLogFile;
+			return  Path.Combine(installLogFolder, PlexInstallLogFile);
 		}
 		
 		/// <summary>
@@ -589,15 +576,13 @@ namespace TE.Plex
 		/// </returns>
 		public string GetMessageLogFilePath()
 		{
-			string logFolder = Environment.GetFolderPath(
-					Environment.SpecialFolder.CommonApplicationData);
+			// Create the log file path
+			string logFolder = Path.Combine(
+				Environment.GetFolderPath(
+					Environment.SpecialFolder.CommonApplicationData),
+				PlexInstallLogFolder);
 			
-			if (!logFolder.EndsWith(@"\", StringComparison.OrdinalIgnoreCase))
-			{
-				logFolder += @"\";
-			}
-			
-			return logFolder + PlexInstallLogFolder + PlexMessageLogFile;			
+			return Path.Combine(logFolder, PlexMessageLogFile);
 		}
 		
 		/// <summary>
@@ -635,12 +620,19 @@ namespace TE.Plex
 		/// <summary>
 		/// Performs the Plex Media Server update.
 		/// </summary>
+		/// <exception cref="System.InvalidOperationException">
+		/// Thrown when an update could not be completed.
+		/// </exception>
 		public void Update()
 		{
-			ServerService service = new ServerService();
+			if (this.plexService == null)
+			{
+				throw new InvalidOperationException(
+					"The Plex service was not found.");
+			}
 			
 			this.UpdateMessage("START: Stopping the Plex service.");
-			service.Stop();
+			plexService.Stop();
 			this.UpdateMessage("END: Stopping the Plex service.");
 				
 			this.UpdateMessage("START: Stopping the Plex Server processes.");
@@ -656,7 +648,7 @@ namespace TE.Plex
 			this.UpdateMessage("END: Stopping the Plex Server processes.");
 			
 			this.UpdateMessage("START: Restarting the Plex service.");
-			service.Start();
+			plexService.Start();
 			this.UpdateMessage("END: Restarting the Plex service.");			
 		}
 		#endregion

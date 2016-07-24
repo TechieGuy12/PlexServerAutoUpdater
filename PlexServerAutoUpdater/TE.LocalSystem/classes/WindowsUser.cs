@@ -79,7 +79,7 @@ namespace TE.LocalSystem
 		/// </exception>
 		/// <returns></returns>
 		private string GetLocalAppDataFolder()
-		{
+		{	
 			// Check to ensure a SID value for the user is set			
 			if (string.IsNullOrEmpty(this.Sid))
 			{
@@ -187,11 +187,6 @@ namespace TE.LocalSystem
 		/// </returns>
 		public bool IsAdministrator()
 		{
-			if (this.userIdentity == null)
-			{
-				return false;
-			}
-			
 			WindowsPrincipal principal = new WindowsPrincipal(this.userIdentity);
 			return principal.IsInRole(WindowsBuiltInRole.Administrator);		
 		}

@@ -54,36 +54,7 @@ namespace TE.Plex
 		/// </param>
 		void BtnUpdateClick(object sender, EventArgs e)
 		{
-			bool updateFailed = true;
-			
-			try
-			{
-				this.btnUpdate.Enabled = false;
-				Application.UseWaitCursor = true;
-				Application.DoEvents();
-				this.server.Update();
-				updateFailed = false;
-				
-
-				lblInstalledVersion.Text = 
-					this.server.CurrentVersion.ToString();
-				lblLatestVersion.Text = this.server.LatestVersion.ToString();
-			}
-			catch (InvalidOperationException ioe)
-			{
-				MessageBox.Show(
-					"The update could not complete:" + Environment.NewLine + ioe.Message);
-			}
-			catch (Exception ex)
-			{
-				MessageBox.Show(
-					"The update could not complete:" + Environment.NewLine + ex.Message);				
-			}
-			finally
-			{
-				btnUpdate.Enabled = updateFailed;
-				Application.UseWaitCursor = false;
-			}
+			this.server.Update();
 		}
 		
 		/// <summary>
@@ -116,11 +87,11 @@ namespace TE.Plex
 				this.server.UpdateMessage += 
 					new MediaServer.UpdateMessageHandler(ServerUpdateMessage);
 
-				lblInstalledVersion.Text = 
-					this.server.CurrentVersion.ToString();
-				lblLatestVersion.Text = this.server.LatestVersion.ToString();
+				lblInstalledVersion.Text = server.CurrentVersion.ToString();
+				lblLatestVersion.Text = server.LatestVersion.ToString();
 				
-				btnUpdate.Enabled = this.server.IsUpdateAvailable();
+				btnUpdate.Enabled = 
+					(server.LatestVersion > server.CurrentVersion);
 			}
 			catch (TE.LocalSystem.Msi.MSIException ex)
 			{

@@ -400,8 +400,8 @@ namespace TE.Plex
 				return string.Empty;
 			}
 			
-			Match match = Regex.Match(fileName, @"\d+.\d+.\d+");		
-			return this.FormatFileNameVersion(match.Groups[0].Value);
+			Match match = Regex.Match(fileName, @"\d+.\d+.\d+.\d+");
+			return match.Groups[0].Value;
 		}
 		
 		/// <summary>
@@ -428,6 +428,24 @@ namespace TE.Plex
 			}
 			
 			return installPath;
+		}
+		
+		private void GetVersions()
+		{
+			// Get the currently installed Plex Media Server version
+			this.CurrentVersion = this.ConvertFromStringToVersion(
+				this.GetVersionFromFile(
+					Path.Combine(this.InstallFolder, PlexExecutable)));
+			
+			// Get the latest Plex Media Server version that has been 
+			// downloaded
+			this.LatestInstallPackage = this.GetLatestInstallPackage();	
+			if (!string.IsNullOrEmpty(this.LatestInstallPackage))
+			{
+				this.LatestVersion = this.ConvertFromStringToVersion(
+					this.GetVersionFromFileName(
+						Path.GetFileName(this.LatestInstallPackage)));
+			}			
 		}
 		
 		/// <summary>
@@ -467,20 +485,7 @@ namespace TE.Plex
 			this.UpdatesFolder = 
 				Path.Combine(this.LocalDataFolder, PlexUpdatesFolder);
 			
-			// Get the currently installed Plex Media Server version
-			this.CurrentVersion = this.ConvertFromStringToVersion(
-				this.GetVersionFromFile(
-					Path.Combine(this.InstallFolder, PlexExecutable)));
-			
-			// Get the latest Plex Media Server version that has been 
-			// downloaded
-			this.LatestInstallPackage = this.GetLatestInstallPackage();	
-			if (!string.IsNullOrEmpty(this.LatestInstallPackage))
-			{
-				this.LatestVersion = this.ConvertFromStringToVersion(
-					this.GetVersionFromFileName(
-						Path.GetFileName(this.LatestInstallPackage)));
-			}
+			this.GetVersions();
 		}
 		
 		/// <summary>
@@ -642,6 +647,8 @@ namespace TE.Plex
 			this.UpdateMessage("START: Running update: " + this.LatestInstallPackage + ".");
 			this.RunInstall();
 			this.UpdateMessage("END: Running update.");
+						
+			this.GetVersions();
 			
 			this.UpdateMessage("START: Stopping the Plex Server processes.");
 			this.StopProcesses();
@@ -649,7 +656,7 @@ namespace TE.Plex
 			
 			this.UpdateMessage("START: Restarting the Plex service.");
 			plexService.Start();
-			this.UpdateMessage("END: Restarting the Plex service.");			
+			this.UpdateMessage("END: Restarting the Plex service.");
 		}
 		#endregion
 	}

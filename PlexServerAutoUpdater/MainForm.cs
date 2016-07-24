@@ -55,6 +55,7 @@ namespace TE.Plex
 		void BtnUpdateClick(object sender, EventArgs e)
 		{
 			this.server.Update();
+			this.Initialize();
 		}
 		
 		/// <summary>

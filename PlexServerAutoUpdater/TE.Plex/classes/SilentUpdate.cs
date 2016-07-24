@@ -170,7 +170,7 @@ namespace TE.Plex
 			this.server.UpdateMessage += 
 				new MediaServer.UpdateMessageHandler(ServerUpdateMessage);
 			
-			this.messageLogFile = this.server.GetMessageLogFilePath();
+			this.messageLogFile = MediaServer.GetMessageLogFilePath();
 			this.isMessageError = (this.messageLogFile.Length > 0);
 			
 			if (!string.IsNullOrEmpty(this.messageLogFile))

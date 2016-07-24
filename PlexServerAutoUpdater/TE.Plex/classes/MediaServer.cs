@@ -319,9 +319,6 @@ namespace TE.Plex
 		/// <exception cref="System.InvalidOperationException">
 		/// The Plex service ID could not be found.
 		/// </exception>
-		/// <exception cref="System.IO.DirectoryNotFoundException">
-		/// The local data folder could not be found.
-		/// </exception>
 		private string GetLocalDataFolder()
 		{
 			// Get the unique user SID for the Plex service user
@@ -346,9 +343,6 @@ namespace TE.Plex
 				// for the Plex service user is the LocalAppDataPath value
 				// is missing from the registry
 				folder = this.plexService.LogOnUser.LocalAppDataFolder;
-				
-				//throw new DirectoryNotFoundException(
-				//	"The Plex local data folder could not be determined.");
 			}
 			
 			return folder;
@@ -400,8 +394,8 @@ namespace TE.Plex
 				return string.Empty;
 			}
 			
-			Match match = Regex.Match(fileName, @"\d+.\d+.\d+");		
-			return this.FormatFileNameVersion(match.Groups[0].Value);
+			Match match = Regex.Match(fileName, @"\d+.\d+.\d+.\d+");
+			return match.Groups[0].Value;
 		}
 		
 		/// <summary>
@@ -431,6 +425,28 @@ namespace TE.Plex
 		}
 		
 		/// <summary>
+		/// Gets the current and update Plex Media Server versions and displays
+		/// them on the form.
+		/// </summary>
+		private void GetVersions()
+		{
+			// Get the currently installed Plex Media Server version
+			this.CurrentVersion = this.ConvertFromStringToVersion(
+				this.GetVersionFromFile(
+					Path.Combine(this.InstallFolder, PlexExecutable)));
+			
+			// Get the latest Plex Media Server version that has been 
+			// downloaded
+			this.LatestInstallPackage = this.GetLatestInstallPackage();	
+			if (!string.IsNullOrEmpty(this.LatestInstallPackage))
+			{
+				this.LatestVersion = this.ConvertFromStringToVersion(
+					this.GetVersionFromFileName(
+						Path.GetFileName(this.LatestInstallPackage)));
+			}		
+		}
+		
+		/// <summary>
 		/// Initializes the <see cref="TE.Plex.MediaServer"/> class.
 		/// </summary>
 		/// <exception cref="TE.Plex.AppNotInstalledException">
@@ -441,7 +457,7 @@ namespace TE.Plex
 		/// </exception>
 		private void Initialize(bool isSilent)
 		{
-			if (this.IsInstalled())
+			if (IsInstalled())
 			{
 				throw new AppNotInstalledException(
 					"The Plex Media Server is not installed.");
@@ -467,40 +483,15 @@ namespace TE.Plex
 			this.UpdatesFolder = 
 				Path.Combine(this.LocalDataFolder, PlexUpdatesFolder);
 			
-			// Get the currently installed Plex Media Server version
-			this.CurrentVersion = this.ConvertFromStringToVersion(
-				this.GetVersionFromFile(
-					Path.Combine(this.InstallFolder, PlexExecutable)));
+			this.GetVersions();
+		}
 			
-			// Get the latest Plex Media Server version that has been 
-			// downloaded
-			this.LatestInstallPackage = this.GetLatestInstallPackage();	
-			if (!string.IsNullOrEmpty(this.LatestInstallPackage))
-			{
-				this.LatestVersion = this.ConvertFromStringToVersion(
-					this.GetVersionFromFileName(
-						Path.GetFileName(this.LatestInstallPackage)));
-			}
-		}
-		
-		/// <summary>
-		/// Checks to see if Plex Media Server is installed.
-		/// </summary>
-		/// <returns>
-		/// True if it is installed, false if it isn't.
-		/// </returns>
-		private bool IsInstalled()
-		{
-			return ((InstalledProduct.Enumerate()
-			         .Where(product=>product.DisplayName == DisplayName)).Any());
-		}
-		
 		/// <summary>
 		/// Run the Plex Media Server installation.
 		/// </summary>
 		private void RunInstall()
 		{	
-			string logFile = this.GetInstallLogFilePath();
+			string logFile = GetInstallLogFilePath();
 			if (File.Exists(logFile))
 			{
 				File.Delete(logFile);
@@ -537,7 +528,7 @@ namespace TE.Plex
 		/// <returns>
 		/// The installation log file path.
 		/// </returns>
-		public string GetInstallLogFilePath()
+		public static string GetInstallLogFilePath()
 		{			
 			string logFolder = Environment.GetFolderPath(
 					Environment.SpecialFolder.CommonApplicationData);
@@ -574,7 +565,7 @@ namespace TE.Plex
 		/// <returns>
 		/// The message log file path.
 		/// </returns>
-		public string GetMessageLogFilePath()
+		public static string GetMessageLogFilePath()
 		{
 			// Create the log file path
 			string logFolder = Path.Combine(
@@ -583,6 +574,18 @@ namespace TE.Plex
 				PlexInstallLogFolder);
 			
 			return Path.Combine(logFolder, PlexMessageLogFile);
+		}
+		
+		/// <summary>
+		/// Checks to see if Plex Media Server is installed.
+		/// </summary>
+		/// <returns>
+		/// True if it is installed, false if it isn't.
+		/// </returns>
+		public static bool IsInstalled()
+		{
+			return ((InstalledProduct.Enumerate()
+			         .Where(product=>product.DisplayName == DisplayName)).Any());
 		}
 		
 		/// <summary>
@@ -649,7 +652,10 @@ namespace TE.Plex
 			
 			this.UpdateMessage("START: Restarting the Plex service.");
 			plexService.Start();
-			this.UpdateMessage("END: Restarting the Plex service.");			
+			this.UpdateMessage("END: Restarting the Plex service.");
+
+			// Update the version information
+			this.GetVersions();
 		}
 		#endregion
 	}

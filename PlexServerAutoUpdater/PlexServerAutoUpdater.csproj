@@ -72,6 +72,7 @@
     <Compile Include="TE.LocalSystem.Msi\InstallProperty.cs" />
     <Compile Include="TE.LocalSystem.Msi\MsiException.cs" />
     <Compile Include="TE.LocalSystem\classes\Logger.cs" />
+    <Compile Include="TE.LocalSystem\classes\WinApi.cs" />
     <Compile Include="TE.Plex\classes\exceptions\AppNotInstalledException.cs" />
     <Compile Include="TE.Plex\classes\exceptions\ServiceNotInstalledException.cs" />
     <Compile Include="TE.Plex\classes\MediaServer.cs" />

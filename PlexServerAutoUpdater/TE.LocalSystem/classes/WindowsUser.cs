@@ -1,5 +1,8 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Text;
 using Microsoft.Win32;
 
 namespace TE.LocalSystem
@@ -105,19 +108,134 @@ namespace TE.LocalSystem
 		/// </exception>
 		private string GetSid()
 		{
+			// Verify that the username was provided
 			if (string.IsNullOrEmpty(this.Name))
 			{
 				throw new System.ArgumentException(
 					"The Windows user name cannot be null or blank.");
 			}
 			
-			NTAccount account = new NTAccount(this.Name);
+			try
+			{
+				// Get the account for the username
+				NTAccount account = new NTAccount(this.Name);
+				
+				// Try to get the security identifier for the username
+				SecurityIdentifier identifier = 
+					(SecurityIdentifier)account.Translate(
+						typeof(SecurityIdentifier));
+				
+				// Return the string value of the identifier
+				return identifier.Value;
+			}			
+			catch (IdentityNotMappedException)
+			{
+				// If the identity could not be mapped, just return an empty string
+				return string.Empty;
+			}					
+		}
+		
+		/// <summary>
+		/// Gets the SID for the associated Windows user using the Windows API.
+		/// </summary>
+		/// <returns>
+		/// The SID for the Windows user.
+		/// </returns>
+		/// <exception cref="System.ArgumentException">
+		/// Thrown when the Windows user name is not specified.
+		/// </exception>
+		/// <exception cref="System.ComponentModel.Win32Exception">
+		/// Throw when a call to the Windows API fails.
+		/// </exception>
+		private string GetSidApi()
+		{
+			// Verify that the username was provided
+			if (string.IsNullOrEmpty(this.Name))
+			{
+				throw new System.ArgumentException(
+					"The Windows user name cannot be null or blank.");
+			}
 			
-			SecurityIdentifier identifier = 
-				(SecurityIdentifier)account.Translate(
-					typeof(SecurityIdentifier));
-			
-			return identifier.Value;		
+			// The byte array that will hold the SID
+            byte [] sid = null;
+            // The SID buffer size
+            uint cbSid = 0;
+            // Then domain name
+            StringBuilder referencedDomainName = new StringBuilder();
+            // The buffer size for the domain name
+            uint cchReferencedDomainName = (uint)referencedDomainName.Capacity;
+            // The type of SID
+            WinApi.SID_NAME_USE sidUse;
+
+            // Default the return value to indicate no error
+            int err = WinApi.NO_ERROR;
+            
+            // Attempt to get the SID for the account name
+            if (!WinApi.LookupAccountName(null, this.Name, sid, ref cbSid, referencedDomainName, ref cchReferencedDomainName, out sidUse))
+            {
+            	// Get the error from the LookupAccountName API call
+                err = Marshal.GetLastWin32Error();
+                
+                // Check to see if either the buffer wasn't sufficient or the
+                // invalid flags error was returned
+                if (err == WinApi.ERROR_INSUFFICIENT_BUFFER || err == WinApi.ERROR_INVALID_FLAGS)
+                {
+                	// Create a new byte buffer with the size returned from the
+                	// first LookupAccountName request
+                    sid = new byte[cbSid];
+                    
+                    // Make sure that the capacity of the StringBuilder object
+                    // for the domain name is at the correct buffer size
+                    referencedDomainName.EnsureCapacity((int)cchReferencedDomainName);
+                    
+                    // Reset the return value to indicate no error
+                    err = WinApi.NO_ERROR;
+                    
+                    // Attempt to get the account name after the correct buffer
+                    // sizes have been set
+                    if (!WinApi.LookupAccountName(null, this.Name, sid,ref cbSid, referencedDomainName, ref cchReferencedDomainName, out sidUse))
+                    {
+						// Throw an exception if the SID could not be
+						// retrieved from the system
+						throw new Win32Exception();
+                    }
+                }
+            }
+            // Any other error that occured when trying to get the SID for the
+            // account name
+            else
+            {
+            	throw new Win32Exception();
+            }
+            
+            // No error occurred
+            if (err == 0)
+            {
+            	// Create the SID pointer
+                IntPtr ptrSid;
+                
+                // Attempt to convert the SID byte array to a string
+                if (!WinApi.ConvertSidToStringSid(sid, out ptrSid))
+                {
+                	// Throw the Windows API error
+                	throw new Win32Exception();
+                }
+                else
+                {
+                	// Copy all characters from an unmanaged memory string to
+                	// a manage string
+                    string sidString = Marshal.PtrToStringAuto(ptrSid);
+                    // Free up the memory
+                    WinApi.LocalFree(ptrSid);
+                    
+                    // Return the SID for the account name
+                    return sidString;
+                }
+            }
+            else
+            {
+            	throw new Win32Exception();
+            }
 		}
 		
 		/// <summary>
@@ -172,6 +290,14 @@ namespace TE.LocalSystem
 			}
 			
 			this.Sid = this.GetSid();
+			this.Sid = string.Empty;
+			// If no SID was returned, try to get the SID using the
+			// Windows API
+			if (string.IsNullOrEmpty(this.Sid))
+			{
+				this.Sid = this.GetSidApi();
+			}
+			
 			this.LocalAppDataFolder = this.GetLocalAppDataFolder();
 		}
 		#endregion

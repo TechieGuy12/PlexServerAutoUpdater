@@ -41,18 +41,18 @@ namespace TE.Plex
 					Environment.Exit(SystemExitCodes.ERROR_ACCESS_DENIED);
 				}				
 			}
-			catch (Win32Exception ex)
+			catch (Exception ex)
 			{
 				if (!isSilent)
 				{
 					MessageBox.Show(
-						"Couldn't get Windows user information.\n\n" + ex.Message,
+						ex.Message,
 						"Plex Server Updater",
 						MessageBoxButtons.OK,
 						MessageBoxIcon.Stop);					
 				}
 				
-				Environment.Exit(ex.NativeErrorCode);
+				Environment.Exit(-1);
 			}
 			
 			if (isSilent)

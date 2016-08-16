@@ -118,13 +118,26 @@ namespace TE.LocalSystem
 			
 			try
 			{
-				// Get the account for the username
-				NTAccount account = new NTAccount(this.Name);
+				SecurityIdentifier identifier = null;
 				
-				// Try to get the security identifier for the username
-				SecurityIdentifier identifier = 
-					(SecurityIdentifier)account.Translate(
-						typeof(SecurityIdentifier));
+				// Check to see if the account name is the LocalSystem
+				// account
+				if (this.Name == "LocalSystem")
+				{
+					// Get the security identifier for the LocalSystem
+					identifier = new SecurityIdentifier(
+						WellKnownSidType.LocalSystemSid,
+						null);					
+				}
+				else
+				{
+					// Get the account for the username
+					NTAccount account = new NTAccount(this.Name);
+					
+					// Try to get the security identifier for the username
+					identifier = (SecurityIdentifier)account.Translate(
+							typeof(SecurityIdentifier));
+				}
 				
 				// Return the string value of the identifier
 				return identifier.Value;
@@ -247,8 +260,8 @@ namespace TE.LocalSystem
 		/// <returns>
 		/// The SID For the Windows user.
 		/// </returns>
-        private string GetSidApiRegistry()
-        {
+		private string GetSidRegistry()
+		{
         	// Default to a blank SID
         	string sid = string.Empty;
         	string name = this.Name;
@@ -291,7 +304,7 @@ namespace TE.LocalSystem
 
         	// Return the SID
         	return sid;
-        }		
+		}		
         
 		/// <summary>
 		/// Gets the Windows identity for the user.
@@ -343,7 +356,7 @@ namespace TE.LocalSystem
 			{
 				this.Name = (this.userIdentity == null) ? WindowsIdentity.GetCurrent().Name : this.Name = this.userIdentity.Name;
 			}
-			
+
 			this.Sid = this.GetSid();
 			
 			// If no SID was returned, try to get the SID using the
@@ -356,7 +369,7 @@ namespace TE.LocalSystem
 				// registry
 				if (string.IsNullOrEmpty(this.Sid))
 				{
-					this.Sid = this.GetSidApiRegistry();
+					this.Sid = this.GetSidRegistry();
 				}
 			}
 			

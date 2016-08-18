@@ -158,6 +158,11 @@ namespace TE.Plex
 					"The Plex Media Server service is not installed.");
 				return;				
 			}
+			catch (TE.LocalSystem.WindowsUserSidNotFound ex)
+			{
+				this.eventLog.Write(ex.Message);
+				return;					
+			}
 			catch (Exception ex)
 			{
 				this.eventLog.Write(string.Format(

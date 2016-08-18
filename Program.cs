@@ -24,7 +24,7 @@ namespace TE.Plex
 			try
 			{
 				WindowsUser user = new WindowsUser();
-
+				
 				// Check if the user running this application is an administrator
 				if (!user.IsAdministrator())
 				{
@@ -75,7 +75,15 @@ namespace TE.Plex
 				// Display the main form
 				Application.EnableVisualStyles();
 				Application.SetCompatibleTextRenderingDefault(false);
-				Application.Run(new MainForm());
+				
+				MainForm mainForm = new MainForm();
+				
+				// Check to see if the form is disposed becase there was an
+				// issue with initializing the form
+				if (!mainForm.IsDisposed)
+				{
+					Application.Run(mainForm);
+				}
 			}
 		}			
 	}

@@ -59,43 +59,111 @@ namespace TE.LocalSystem
 		/// Creates an instance of the <see cref="TE.LocalSystem.WindowsUser"/>
 		/// class.
 		/// </summary>
+		/// <exception cref="TE.LocalSystem.WindowsUserSidNotFound">
+		/// Thrown when the SID for the user is null or empty.
+		/// </exception>
 		public WindowsUser() 
 		{ 
-			this.Initialize(string.Empty);
+			try
+			{
+				this.Initialize(string.Empty);
+			}
+			catch
+			{
+				throw;
+			}
 		}
 		
 		/// <summary>
 		/// Creates an instance of the <see cref="TE.LocalSystem.WindowsUser"/>
 		/// class when provided with the Windows user's name.
-		/// </summary>		
+		/// </summary>
+		/// <exception cref="TE.LocalSystem.WindowsUserSidNotFound">
+		/// Thrown when the SID for the user is null or empty.
+		/// </exception>		
 		public WindowsUser(string name)
 		{
-			this.Initialize(name);
+			try
+			{
+				this.Initialize(name);
+			}
+			catch
+			{
+				throw;
+			}
 		}
 		#endregion
 		
 		#region Private Functions
 		/// <summary>
+		/// Gets the Windows identity for the user.
+		/// </summary>
+		/// <returns>
+		/// A <see cref="System.Security.Principal.WindowsIdentity"/> object
+		/// of the Windows user, or null if the <see cref="System.Security.Principal.WindowsIdentity"/>
+		/// object could not be created.
+		/// </returns>
+		private WindowsIdentity GetIdentity()
+		{
+			WindowsIdentity identity = null;
+			
+			try
+			{
+				if (string.IsNullOrEmpty(this.Name))
+				{
+					// If no Windows user name is specified, just get the identity
+					// for the current user
+					identity = WindowsIdentity.GetCurrent();
+				}
+				else
+				{
+					// Get the identity for the user associated with the user name
+					identity = new WindowsIdentity(this.Name);
+				}
+			}
+			catch (UnauthorizedAccessException)
+			{
+				return null;
+			}
+			catch (System.Security.SecurityException)
+			{
+				return null;
+			}
+			
+			return identity;
+		}
+		
+		/// <summary>
 		/// Gets the local application data path for the Windows user.
 		/// </summary>
-		/// <exception cref="System.InvalidOperationException">
+		/// <exception cref="TE.LocalSystem.WindowsUserSidNotFound">
 		/// Thrown when the SID for the user is null or empty.
 		/// </exception>
-		/// <returns></returns>
+		/// <returns>
+		/// The path of the local application data folder for the Windows user.
+		/// </returns>
 		private string GetLocalAppDataFolder()
 		{	
 			// Check to ensure a SID value for the user is set			
 			if (string.IsNullOrEmpty(this.Sid))
 			{
-				throw new InvalidOperationException(
+				throw new WindowsUserSidNotFound(
 					"The SID for the user was not specified.");
 			}
-
+						
+			try
+			{
 			// Get the local application data folder path for the user
-			return Registry.GetValue(
+				return Registry.GetValue(
 				RegistryUsersRoot + @"\" + this.Sid + @"\" + RegistryLocalAppDataKey, 
 				RegistryLocalAppDataValueName, 
 				string.Empty).ToString();			
+			}
+			catch				
+			{
+				return string.Empty;
+			}
+
 		}
 		
 		/// <summary>
@@ -104,40 +172,22 @@ namespace TE.LocalSystem
 		/// <returns>
 		/// The SID for the Windows user.
 		/// </returns>
-		/// <exception cref="System.ArgumentException">
-		/// Thrown when the Windows user name is not specified.
-		/// </exception>
 		private string GetSid()
 		{
 			// Verify that the username was provided
 			if (string.IsNullOrEmpty(this.Name))
 			{
-				throw new System.ArgumentException(
-					"The Windows user name cannot be null or blank.");
+				return string.Empty;
 			}
 			
 			try
 			{
-				SecurityIdentifier identifier = null;
+				// Get the account for the username
+				NTAccount account = new NTAccount(this.Name);
 				
-				// Check to see if the account name is the LocalSystem
-				// account
-				if (this.Name == "LocalSystem")
-				{
-					// Get the security identifier for the LocalSystem
-					identifier = new SecurityIdentifier(
-						WellKnownSidType.LocalSystemSid,
-						null);					
-				}
-				else
-				{
-					// Get the account for the username
-					NTAccount account = new NTAccount(this.Name);
-					
-					// Try to get the security identifier for the username
-					identifier = (SecurityIdentifier)account.Translate(
-							typeof(SecurityIdentifier));
-				}
+				// Try to get the security identifier for the username
+				SecurityIdentifier identifier = (SecurityIdentifier)account.Translate(
+						typeof(SecurityIdentifier));
 				
 				// Return the string value of the identifier
 				return identifier.Value;
@@ -155,16 +205,12 @@ namespace TE.LocalSystem
 		/// <returns>
 		/// The SID for the Windows user.
 		/// </returns>
-		/// <exception cref="System.ArgumentException">
-		/// Thrown when the Windows user name is not specified.
-		/// </exception>
 		private string GetSidApi()
 		{
 			// Verify that the username was provided
 			if (string.IsNullOrEmpty(this.Name))
 			{
-				throw new System.ArgumentException(
-				"The Windows user name cannot be null or blank.");
+				return string.Empty;
 			}
 			
 			// The byte array that will hold the SID
@@ -262,18 +308,17 @@ namespace TE.LocalSystem
 		/// </returns>
 		private string GetSidRegistry()
 		{
+			// Verify that the username was provided
+			if (string.IsNullOrEmpty(this.Name))
+			{
+				return string.Empty;
+			}
+			
         	// Default to a blank SID
         	string sid = string.Empty;
-        	string name = this.Name;
-        	
-        	if (name.Contains(@"\"))
-        	{
-        		name = Regex.Replace(
-        			name, 
-        			@".*\\(.*)", 
-        			"$1",
-        			RegexOptions.None);
-        	}
+
+			// Remove the domain name from the Windows user name
+			string name = RemoveDomainFromName(this.Name);
         	
         	// Open the registry key that contains the profiles
         	RegistryKey key = Registry.LocalMachine.OpenSubKey(
@@ -304,49 +349,69 @@ namespace TE.LocalSystem
 
         	// Return the SID
         	return sid;
-		}		
-        
+		}	
+
 		/// <summary>
-		/// Gets the Windows identity for the user.
+		/// Gets the SID of a well-known account. Such accounts are built into
+		/// Windows and the SID for these accounts are the same on all
+		/// computers.
 		/// </summary>
 		/// <returns>
-		/// A <see cref="System.Security.Principal.WindowsIdentity"/> object
-		/// of the Windows user, or null if the <see cref="System.Security.Principal.WindowsIdentity"/>
-		/// object could not be created.
+		/// The SID for the Windows user.
 		/// </returns>
-		private WindowsIdentity GetIdentity()
+		private string GetSidKnown()
 		{
-			WindowsIdentity identity = null;
+			// Verify that the username was provided
+			if (string.IsNullOrEmpty(this.Name))
+			{
+				return string.Empty;
+			}
+
+			// Remove the domain name from the Windows user name
+			string name = RemoveDomainFromName(this.Name);
+        	
+			SecurityIdentifier identifier = null;
 			
 			try
 			{
-				if (string.IsNullOrEmpty(this.Name))
+
+				if (name == "LocalService")
 				{
-					// If no Windows user name is specified, just get the identity
-					// for the current user
-					identity = WindowsIdentity.GetCurrent();
+					// Get the security identifier for the LocalService
+					identifier = new SecurityIdentifier(
+						WellKnownSidType.LocalServiceSid,
+						null);					
 				}
-				else
+				if (name == "LocalSystem")
 				{
-					// Get the identity for the user associated with the user name
-					identity = new WindowsIdentity(this.Name);
+					// Get the security identifier for the LocalSystem
+					identifier = new SecurityIdentifier(
+						WellKnownSidType.LocalSystemSid,
+						null);					
 				}
-			}
-			catch (UnauthorizedAccessException)
-			{
-				return null;
-			}
-			catch (System.Security.SecurityException)
-			{
-				return null;
-			}
-			
-			return identity;
-		}
+				else if (name == "NetworkService")
+				{					
+					// Get the security identifier for the NetworkServer
+					identifier = new SecurityIdentifier(
+						WellKnownSidType.NetworkServiceSid,
+						null);
+				}
 		
+				return identifier.Value;
+			
+			}
+			catch
+			{
+				return string.Empty;
+			}
+		}
+        		
 		/// <summary>
 		/// Initializes the objects and properties in the class.
 		/// </summary>
+		/// <exception cref="TE.LocalSystem.WindowsUserSidNotFound">
+		/// Thrown when the SID for the user is null or empty.
+		/// </exception>
 		private void Initialize(string name)
 		{
 			this.Name = name;
@@ -357,23 +422,65 @@ namespace TE.LocalSystem
 				this.Name = (this.userIdentity == null) ? WindowsIdentity.GetCurrent().Name : this.Name = this.userIdentity.Name;
 			}
 
-			this.Sid = this.GetSid();
+			// Try to see if the account is a well-known account and get the
+			// SID for the account
+			this.Sid = this.GetSidKnown();
 			
-			// If no SID was returned, try to get the SID using the
-			// Windows API
+			// If the the account name doesn't match a well-known account,
+			// then try to find the SID for the account
 			if (string.IsNullOrEmpty(this.Sid))
 			{
-				this.Sid = this.GetSidApi();
-				
-				// If still no SID was returned, try to find it in the
-				// registry
+				this.Sid = this.GetSid();
+			
+				// If no SID was returned, try to get the SID using the
+				// Windows API
 				if (string.IsNullOrEmpty(this.Sid))
 				{
-					this.Sid = this.GetSidRegistry();
-				}
+					this.Sid = this.GetSidApi();				
+					
+					// If still no SID was returned, try to find it in the
+					// registry
+					if (string.IsNullOrEmpty(this.Sid))
+					{
+						this.Sid = this.GetSidRegistry();
+					}					
+				}	
+			}
+			
+			// Throw an exception is the SID was not found
+			if (string.IsNullOrEmpty(this.Sid))
+			{
+				throw new WindowsUserSidNotFound(
+					"The SID for the user was not specified.");
 			}
 			
 			this.LocalAppDataFolder = this.GetLocalAppDataFolder();
+		}
+		
+		/// <summary>
+		/// Removes the domain name from the Windows user.
+		/// </summary>
+		/// <param name="name">
+		/// The name of the Windows user
+		/// </param>
+		/// <returns>
+		/// The name of the Windows user without the domain name.
+		/// </returns>
+		private string RemoveDomainFromName(string name)
+		{        
+			// Check to see if the name contains a slash			
+        	if (name.Contains(@"\"))
+        	{
+        		// Remove the domain name
+        		name = Regex.Replace(
+        			name, 
+        			@".*\\(.*)", 
+        			"$1",
+        			RegexOptions.None);
+        	}
+
+        	// Return the name without the domain name
+        	return name;
 		}
 		#endregion
 		

@@ -333,12 +333,21 @@ namespace TE.Plex
 					"The Plex service user ID could not be found.");
 			}
 			
-			// Get the Plex local data folder from the users registry hive
-			// for the user ID associated with the Plex service
-			string folder = Registry.GetValue(
-				RegistryUsersRoot + @"\" + serviceUserSid + RegistryPlexKey, 
-				RegistryPlexDataPathValueName, 
-				string.Empty).ToString();
+			string folder;
+			
+			try
+			{
+				// Get the Plex local data folder from the users registry hive
+				// for the user ID associated with the Plex service
+				folder = Registry.GetValue(
+					RegistryUsersRoot + @"\" + serviceUserSid + RegistryPlexKey, 
+					RegistryPlexDataPathValueName, 
+					string.Empty).ToString();
+			}
+			catch
+			{
+				folder = string.Empty;
+			}
 			
 			if (string.IsNullOrEmpty(folder))
 			{
@@ -346,9 +355,6 @@ namespace TE.Plex
 				// for the Plex service user is the LocalAppDataPath value
 				// is missing from the registry
 				folder = this.plexService.LogOnUser.LocalAppDataFolder;
-				
-				//throw new DirectoryNotFoundException(
-				//	"The Plex local data folder could not be determined.");
 			}
 			
 			return folder;
@@ -457,6 +463,10 @@ namespace TE.Plex
 		/// <exception cref="TE.Plex.ServiceNotInstalledException">
 		/// The Plex Media Server service is not installed.
 		/// </exception>
+		/// <exception cref="TE.Plex.PlexDataFolderNotFoundException">
+		/// The Plex Media Server service local applicaiton data folder could
+		/// not be found.
+		/// </exception>
 		private void Initialize(bool isSilent)
 		{
 			if (this.IsInstalled())
@@ -472,7 +482,14 @@ namespace TE.Plex
 					
 			// Populate a service object with information about the Plex
 			// service
-			this.plexService = new ServerService();
+			try
+			{
+				this.plexService = new ServerService();
+			}
+			catch
+			{
+				throw;
+			}
 			
 			if (this.plexService == null)
 			{
@@ -482,6 +499,13 @@ namespace TE.Plex
 			
 			// Get the Plex folders
 			this.LocalDataFolder = GetLocalDataFolder();
+			
+			if (string.IsNullOrEmpty(this.LocalDataFolder))
+			{
+				throw new PlexDataFolderNotFoundException(
+					"The Plex local application data folder could not be found for the Plex Windows account.");
+			}
+			
 			this.UpdatesFolder = 
 				Path.Combine(this.LocalDataFolder, PlexUpdatesFolder);
 			

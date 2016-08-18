@@ -96,22 +96,56 @@ namespace TE.Plex
 			}
 			catch (TE.LocalSystem.Msi.MSIException ex)
 			{
-				MessageBox.Show("MSI:" + ex.Message);
+				MessageBox.Show(
+					"MSI:" + ex.Message,
+					"Plex Updater Error",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Error);
 				this.Close();
 			}
 			catch(AppNotInstalledException ex)
 			{
-				MessageBox.Show(ex.Message);
+				MessageBox.Show(
+					ex.Message,
+					"Plex Updater Error",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Error);
 				this.Close();
 			}
 			catch (ServiceNotInstalledException ex)
 			{
-				MessageBox.Show(ex.Message);
+				MessageBox.Show(
+					ex.Message,
+					"Plex Updater Error",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Error);
+				this.Close();
+			}
+			catch (PlexDataFolderNotFoundException ex)
+			{
+				MessageBox.Show(
+					ex.Message,
+					"Plex Updater Error",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Error);
+				this.Close();
+			}			
+			catch (TE.LocalSystem.WindowsUserSidNotFound ex)
+			{
+				MessageBox.Show(
+					ex.Message,
+					"Plex Updater Error",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Error);
 				this.Close();
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.Message);
+				MessageBox.Show(
+					ex.Message,
+					"Plex Updater Error",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Error);
 				this.Close();
 			}
 		}

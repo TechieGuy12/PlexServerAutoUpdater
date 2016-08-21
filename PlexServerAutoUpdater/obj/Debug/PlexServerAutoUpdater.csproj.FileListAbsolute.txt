@@ -1,8 +1,0 @@
-C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\src\PlexServerAutoUpdater\obj\Debug\PlexServerAutoUpdater.csprojResolveAssemblyReference.cache
-C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\src\PlexServerAutoUpdater\obj\Debug\TE.Plex.MainForm.resources
-C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\src\PlexServerAutoUpdater\obj\Debug\PlexServerAutoUpdater.csproj.GenerateResource.Cache
-C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\src\PlexServerAutoUpdater\bin\Debug\psupdate.exe.config
-C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\src\PlexServerAutoUpdater\bin\Debug\psupdate.exe
-C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\src\PlexServerAutoUpdater\bin\Debug\psupdate.pdb
-C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\src\PlexServerAutoUpdater\obj\Debug\psupdate.exe
-C:\Users\Paul\Documents\GitHub\PlexServerAutoUpdater\src\PlexServerAutoUpdater\obj\Debug\psupdate.pdb

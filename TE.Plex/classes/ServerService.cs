@@ -33,10 +33,21 @@ namespace TE.Plex
 		/// <exception cref="TE.Plex.ServiceNotInstalledException">
 		/// The Plex Media Server service is not installed.
 		/// </exception>
+		/// <exception cref="TE.LocalSystem.WindowsUserSidNotFound">
+		/// The Plex Media Server service account SID could not be found.
+		/// </exception>
 		public ServerService()
 		{
-			// Get the LogOnUser for the Plex Media Server service
-			this.LogOnUser = GetServiceUser();
+			try
+			{
+				// Get the LogOnUser for the Plex Media Server service
+				this.LogOnUser = GetServiceUser();
+			}
+			catch (WindowsUserSidNotFound)
+			{
+				throw new WindowsUserSidNotFound(
+					"The Plex Media Server service account SID could not be found.");
+			}
 			
 			// If a WindowsUser object was not returned, throw an exception
 			// indicating the service does not exist

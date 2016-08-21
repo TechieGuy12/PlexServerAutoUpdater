@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Windows.Forms;
 using TE.LocalSystem;
 using TE;
@@ -20,22 +21,38 @@ namespace TE.Plex
 			
 			bool isSilent = (arguments["silent"] != null);
 			
-			WindowsUser user = new WindowsUser();
-			
-			// Check if the user running this application is an administrator
-			if (!user.IsAdministrator())
+			try
+			{
+				WindowsUser user = new WindowsUser();
+				
+				// Check if the user running this application is an administrator
+				if (!user.IsAdministrator())
+				{
+					if (!isSilent)
+					{
+						// If the user is not an administrator, then exit
+						MessageBox.Show(
+							"This application must be run from an administrative account.",
+							"Plex Server Updater",
+							MessageBoxButtons.OK,
+							MessageBoxIcon.Stop);
+					}
+					
+					Environment.Exit(SystemExitCodes.ERROR_ACCESS_DENIED);
+				}				
+			}
+			catch (Exception ex)
 			{
 				if (!isSilent)
 				{
-					// If the user is not an administrator, then exit
 					MessageBox.Show(
-						"This application must be run from an administrative account.",
+						ex.Message,
 						"Plex Server Updater",
 						MessageBoxButtons.OK,
-						MessageBoxIcon.Stop);
+						MessageBoxIcon.Stop);					
 				}
 				
-				Environment.Exit(SystemExitCodes.ERROR_ACCESS_DENIED);
+				Environment.Exit(-1);
 			}
 			
 			if (isSilent)
@@ -58,7 +75,15 @@ namespace TE.Plex
 				// Display the main form
 				Application.EnableVisualStyles();
 				Application.SetCompatibleTextRenderingDefault(false);
-				Application.Run(new MainForm());
+				
+				MainForm mainForm = new MainForm();
+				
+				// Check to see if the form is disposed becase there was an
+				// issue with initializing the form
+				if (!mainForm.IsDisposed)
+				{
+					Application.Run(mainForm);
+				}
 			}
 		}			
 	}

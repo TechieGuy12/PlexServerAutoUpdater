@@ -668,19 +668,28 @@ namespace TE.Plex
 			this.StopProcesses();
 			this.UpdateMessage("END: Stopping the Plex Server processes.");
 			
-			this.UpdateMessage("START: Running update: " + this.LatestInstallPackage + ".");
-			this.RunInstall();
-			this.UpdateMessage("END: Running update.");
-						
-			this.GetVersions();
-			
-			this.UpdateMessage("START: Stopping the Plex Server processes.");
-			this.StopProcesses();
-			this.UpdateMessage("END: Stopping the Plex Server processes.");
-			
-			this.UpdateMessage("START: Restarting the Plex service.");
-			plexService.Start();
-			this.UpdateMessage("END: Restarting the Plex service.");
+			try
+			{
+				this.UpdateMessage("START: Running update: " + this.LatestInstallPackage + ".");
+				this.RunInstall();
+				this.UpdateMessage("END: Running update.");
+				
+				this.GetVersions();
+			}
+			catch
+			{
+				throw;
+			}
+			finally
+			{								
+				this.UpdateMessage("START: Stopping the Plex Server processes.");
+				this.StopProcesses();
+				this.UpdateMessage("END: Stopping the Plex Server processes.");
+				
+				this.UpdateMessage("START: Restarting the Plex service.");
+				plexService.Start();
+				this.UpdateMessage("END: Restarting the Plex service.");
+			}
 		}
 		#endregion
 	}

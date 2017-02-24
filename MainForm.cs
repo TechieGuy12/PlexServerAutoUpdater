@@ -54,8 +54,15 @@ namespace TE.Plex
 		/// </param>
 		void BtnUpdateClick(object sender, EventArgs e)
 		{
-			this.server.Update();
-			this.Initialize();
+			try
+			{
+				this.server.Update();
+				this.Initialize();
+			}
+			catch (Exception ex)
+			{
+				this.txtUpdateStatus.Text += "ERROR: " + ex.Message + Environment.NewLine;
+			}
 		}
 		
 		/// <summary>

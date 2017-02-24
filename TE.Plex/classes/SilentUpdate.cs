@@ -238,10 +238,20 @@ namespace TE.Plex
 		/// </summary>
 		public void Run()
 		{
+			try
+			{
 			if (this.server.IsUpdateAvailable())
 			{						
 				this.server.Update();
-			}	
+			}
+			}
+			catch (Exception ex)
+			{
+				this.eventLog.Write(string.Format(
+					"An error occurred: {0}{1}",
+					Environment.NewLine,
+					ex.Message));
+			}
 		}
 		#endregion
 	}

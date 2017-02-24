@@ -7,7 +7,8 @@ using TE.LocalSystem;
 namespace TE.Plex
 {
 	/// <summary>
-	/// Description of ServerService.
+	/// The properties and methods associated with the Plex Media Server
+	/// service.
 	/// </summary>
 	public class ServerService
 	{
@@ -76,6 +77,12 @@ namespace TE.Plex
 				ManagementObject service = 
 					new ManagementObject(
 						"Win32_Service.Name='" + ServiceName + "'");
+				
+				if (service == null)
+				{
+					return null;
+				}
+				
 				service.Get();
 				user = new WindowsUser(service["startname"].ToString().Replace(
 					@".\", System.Environment.MachineName + @"\"));

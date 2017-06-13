@@ -1,4 +1,5 @@
 ﻿using System;
+using static System.Environment;
 using System.Collections.Generic;
 using System.Text;
 
@@ -62,14 +63,20 @@ namespace TE.LocalSystem.Msi
                 yield return new InstalledProduct(guid);
         }     
 
+        /// <summary>
+        /// Returns a string that contains all the property names and values.
+        /// </summary>
+        /// <returns>
+        /// A string that contains all the property names and values.
+        /// </returns>
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            foreach (var p in this.GetType().GetProperties())
+            foreach (var p in GetType().GetProperties())
             {
                 try
                 {
-                    sb.AppendFormat("{0}:{1}\r\n", p.Name, p.GetValue(this));
+                    sb.AppendFormat($"{p.Name}:{p.GetValue(this)}{NewLine}");
                 }
                 catch
                 { }

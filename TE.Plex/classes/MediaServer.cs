@@ -142,7 +142,7 @@ namespace TE.Plex
 		/// </summary>
 		public MediaServer()
 		{
-			this.Initialize(false);
+			Initialize(false);
 		}
 		
 		/// <summary>
@@ -152,7 +152,7 @@ namespace TE.Plex
 		/// </summary>		
 		public MediaServer(bool isSilent)
 		{
-			this.Initialize(isSilent);
+			Initialize(isSilent);
 		}
 		#endregion
 		
@@ -192,7 +192,8 @@ namespace TE.Plex
 				{
 					// Delete the run keys from the registry for the user
 					// associated with the Plex service
-					Registry.Users.DeleteSubKeyTree(serviceUserSid + @"\" + RegistryRunKey);
+					Registry.Users.DeleteSubKeyTree(
+                        $"{serviceUserSid}\\{RegistryRunKey}");
 				}
 			}
 			catch (ArgumentException)
@@ -237,12 +238,12 @@ namespace TE.Plex
 			{
 				try
 				{
-					fileVersion = parts[0] + "." + parts[1];
+					fileVersion = $"{parts[0]}.{parts[1]}";
 					
 					if (parts[2].Length > 2)
 					{
-						fileVersion += "." + parts[2].Substring(0, 2);
-						fileVersion += "." + parts[2].Substring(2);
+						fileVersion += $".{parts[2].Substring(0, 2)}";
+						fileVersion += $".{parts[2].Substring(2)}";
 					}
 					else
 					{
@@ -267,28 +268,28 @@ namespace TE.Plex
 		/// </returns>
 		private string GetLatestInstallPackage()
 		{
-			if (string.IsNullOrEmpty(this.UpdatesFolder))
+			if (string.IsNullOrEmpty(UpdatesFolder))
 			{
-				this.UpdateMessage(
+				UpdateMessage(
 					"The Plex updates folder was not specified.");
 				return string.Empty;
 			}
 			
-			if (!Directory.Exists(this.UpdatesFolder))
+			if (!Directory.Exists(UpdatesFolder))
 			{
-				this.UpdateMessage(
-					"The Plex updates folder, " + this.UpdatesFolder + " could not be found.");
+				UpdateMessage(
+					$"The Plex updates folder, {UpdatesFolder} could not be found.");
 				return string.Empty;
 			}
 			
 			// Check to see if at least one update folder is available
-			if (!Directory.EnumerateFileSystemEntries(this.UpdatesFolder).Any())
+			if (!Directory.EnumerateFileSystemEntries(UpdatesFolder).Any())
 			{
 				return string.Empty;
 			}
 
 			DirectoryInfo latestFolder =
-				new DirectoryInfo(this.UpdatesFolder).GetDirectories()
+				new DirectoryInfo(UpdatesFolder).GetDirectories()
 					.OrderByDescending(d=>d.LastWriteTimeUtc).First();
 
 			string packagesFullPath = 
@@ -296,8 +297,8 @@ namespace TE.Plex
 		
 			if (!Directory.Exists(packagesFullPath))
 			{
-				this.UpdateMessage(
-					"The latest Plex packages folder " + packagesFullPath + " could not be found.");
+				UpdateMessage(
+					$"The latest Plex packages folder {packagesFullPath} could not be found.");
 				return string.Empty;
 			}
 			
@@ -325,7 +326,7 @@ namespace TE.Plex
 		private string GetLocalDataFolder()
 		{
 			// Get the unique user SID for the Plex service user
-			serviceUserSid = this.plexService.LogOnUser.Sid;
+			serviceUserSid = plexService.LogOnUser.Sid;
 			
 			if (string.IsNullOrEmpty(serviceUserSid))
 			{
@@ -340,7 +341,7 @@ namespace TE.Plex
 				// Get the Plex local data folder from the users registry hive
 				// for the user ID associated with the Plex service
 				folder = Registry.GetValue(
-					RegistryUsersRoot + @"\" + serviceUserSid + RegistryPlexKey, 
+					$"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}", 
 					RegistryPlexDataPathValueName, 
 					string.Empty).ToString();
 			}
@@ -354,7 +355,7 @@ namespace TE.Plex
 				// Default to the standard local application data folder
 				// for the Plex service user is the LocalAppDataPath value
 				// is missing from the registry
-				folder = this.plexService.LogOnUser.LocalAppDataFolder;
+				folder = plexService.LogOnUser.LocalAppDataFolder;
 			}
 			
 			return folder;
@@ -439,18 +440,18 @@ namespace TE.Plex
 		private void GetVersions()
 		{
 			// Get the currently installed Plex Media Server version
-			this.CurrentVersion = this.ConvertFromStringToVersion(
-				this.GetVersionFromFile(
-					Path.Combine(this.InstallFolder, PlexExecutable)));
+			CurrentVersion = ConvertFromStringToVersion(
+				GetVersionFromFile(
+					Path.Combine(InstallFolder, PlexExecutable)));
 			
 			// Get the latest Plex Media Server version that has been 
 			// downloaded
-			this.LatestInstallPackage = this.GetLatestInstallPackage();	
-			if (!string.IsNullOrEmpty(this.LatestInstallPackage))
+			LatestInstallPackage = GetLatestInstallPackage();	
+			if (!string.IsNullOrEmpty(LatestInstallPackage))
 			{
-				this.LatestVersion = this.ConvertFromStringToVersion(
-					this.GetVersionFromFileName(
-						Path.GetFileName(this.LatestInstallPackage)));
+				LatestVersion = ConvertFromStringToVersion(
+					GetVersionFromFileName(
+						Path.GetFileName(LatestInstallPackage)));
 			}			
 		}
 		
@@ -469,47 +470,47 @@ namespace TE.Plex
 		/// </exception>
 		private void Initialize(bool isSilent)
 		{
-			if (this.IsInstalled())
+			if (IsInstalled())
 			{
 				throw new AppNotInstalledException(
 					"The Plex Media Server is not installed.");
 			}
 			
-			this.IsSilent = isSilent;
-			this.CurrentVersion = new Version(0, 0, 0, 0);
-			this.LatestVersion = new Version(0, 0, 0, 0);
-			this.InstallFolder = this.GetInstallPath();
+			IsSilent = isSilent;
+			CurrentVersion = new Version(0, 0, 0, 0);
+			LatestVersion = new Version(0, 0, 0, 0);
+			InstallFolder = GetInstallPath();
 					
 			// Populate a service object with information about the Plex
 			// service
 			try
 			{
-				this.plexService = new ServerService();
+				plexService = new ServerService();
 			}
 			catch
 			{
 				throw;
 			}
 			
-			if (this.plexService == null)
+			if (plexService == null)
 			{
 				throw new InvalidOperationException(
 					"The Plex service could not be found.");
 			}
 			
 			// Get the Plex folders
-			this.LocalDataFolder = GetLocalDataFolder();
+			LocalDataFolder = GetLocalDataFolder();
 			
-			if (string.IsNullOrEmpty(this.LocalDataFolder))
+			if (string.IsNullOrEmpty(LocalDataFolder))
 			{
 				throw new PlexDataFolderNotFoundException(
 					"The Plex local application data folder could not be found for the Plex Windows account.");
 			}
 			
-			this.UpdatesFolder = 
-				Path.Combine(this.LocalDataFolder, PlexUpdatesFolder);
+			UpdatesFolder = 
+				Path.Combine(LocalDataFolder, PlexUpdatesFolder);
 			
-			this.GetVersions();
+			GetVersions();
 		}
 		
 		/// <summary>
@@ -529,14 +530,14 @@ namespace TE.Plex
 		/// </summary>
 		private void RunInstall()
 		{	
-			string logFile = this.GetInstallLogFilePath();
+			string logFile = GetInstallLogFilePath();
 			if (File.Exists(logFile))
 			{
 				File.Delete(logFile);
 			}
 						
 			ProcessStartInfo startInfo = new ProcessStartInfo(
-				this.LatestInstallPackage,
+				LatestInstallPackage,
 				PlexInstallParameters + logFile);
 			
 			Process install = Process.Start(startInfo);
@@ -623,7 +624,7 @@ namespace TE.Plex
 		/// </returns>
 		public bool IsUpdateAvailable()
 		{
-			return (this.CurrentVersion.CompareTo(this.LatestVersion) < 0);
+			return (CurrentVersion.CompareTo(LatestVersion) < 0);
 		}
 		
 		/// <summary>
@@ -642,7 +643,7 @@ namespace TE.Plex
 						
  			for (int i = 0; i <= processes.Length-1; i++) 
  			{ 
- 				this.StopProcess(processes[i]);
+ 				StopProcess(processes[i]);
  			} 			
 		}
 		
@@ -654,27 +655,27 @@ namespace TE.Plex
 		/// </exception>
 		public void Update()
 		{
-			if (this.plexService == null)
+			if (plexService == null)
 			{
 				throw new InvalidOperationException(
 					"The Plex service was not found.");
 			}
 			
-			this.UpdateMessage("START: Stopping the Plex service.");
+			UpdateMessage("START: Stopping the Plex service.");
 			plexService.Stop();
-			this.UpdateMessage("END: Stopping the Plex service.");
+			UpdateMessage("END: Stopping the Plex service.");
 				
-			this.UpdateMessage("START: Stopping the Plex Server processes.");
-			this.StopProcesses();
-			this.UpdateMessage("END: Stopping the Plex Server processes.");
+			UpdateMessage("START: Stopping the Plex Server processes.");
+			StopProcesses();
+			UpdateMessage("END: Stopping the Plex Server processes.");
 			
 			try
 			{
-				this.UpdateMessage("START: Running update: " + this.LatestInstallPackage + ".");
-				this.RunInstall();
-				this.UpdateMessage("END: Running update.");
+				UpdateMessage($"START: Running update: {LatestInstallPackage}.");
+				RunInstall();
+				UpdateMessage("END: Running update.");
 				
-				this.GetVersions();
+				GetVersions();
 			}
 			catch
 			{
@@ -682,13 +683,13 @@ namespace TE.Plex
 			}
 			finally
 			{								
-				this.UpdateMessage("START: Stopping the Plex Server processes.");
-				this.StopProcesses();
-				this.UpdateMessage("END: Stopping the Plex Server processes.");
+				UpdateMessage("START: Stopping the Plex Server processes.");
+				StopProcesses();
+				UpdateMessage("END: Stopping the Plex Server processes.");
 				
-				this.UpdateMessage("START: Restarting the Plex service.");
+				UpdateMessage("START: Restarting the Plex service.");
 				plexService.Start();
-				this.UpdateMessage("END: Restarting the Plex service.");
+				UpdateMessage("END: Restarting the Plex service.");
 			}
 		}
 		#endregion

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using static System.Environment;
 using System.IO;
 using TE.LocalSystem;
 
@@ -36,7 +37,7 @@ namespace TE.Plex
 		/// </summary>
 		public SilentUpdate()
 		{
-			this.Initialize();
+			Initialize();
 		}
 		#endregion
 		
@@ -57,79 +58,65 @@ namespace TE.Plex
 				return;
 			}
 			
-			if (this.server != null)
+			if (server != null)
 			{					
-				this.isMessageError = true;
+				isMessageError = true;
 				
-				this.eventLog.EntryType = EventLogEntryType.Error;
-				this.eventLog.Write(
+				eventLog.EntryType = EventLogEntryType.Error;
+				eventLog.Write(
 					"There was an issue connecting to the media server.");
 			}
 			
-			if (!string.IsNullOrEmpty(this.messageLogFile))
+			if (!string.IsNullOrEmpty(messageLogFile))
 			{	
-				this.isMessageError = true;
-				this.eventLog.Write(
+				isMessageError = true;
+				eventLog.Write(
 					"The message log file was not specified. The installation log will still be written.");
 			}
-			
-			try
-			{
-				using (StreamWriter sw = 
-				       new StreamWriter(this.messageLogFile, true))
-				{
-					sw.WriteLine(message);
-				}
-			}
-			catch (UnauthorizedAccessException)
-			{
-				this.isMessageError = true;
-				this.eventLog.Write(string.Format(
-					"Access to the message log file is denied.{0}Message log path: {1}",
-					Environment.NewLine,
-					this.messageLogFile));		
-			}
-			catch (DirectoryNotFoundException)
-			{
-				this.isMessageError = true;
-				this.eventLog.Write(string.Format(
-					"The message file directory could not be found.{0}Message log path: {1}",
-					Environment.NewLine,
-					this.messageLogFile));					
-			}
-			catch (PathTooLongException)
-			{
-				this.isMessageError = true;
-				this.eventLog.Write(string.Format(
-					"The message log path is too long. The total length of the path must be less than 260 characters.{0}Message log path: {1}",
-					Environment.NewLine,
-					this.messageLogFile));					
-			}			
-			catch (IOException)
-			{
-				this.isMessageError = true;
-				this.eventLog.Write(string.Format(
-					"The message log path is invalid.{0}Message log path: {1}",
-					Environment.NewLine,
-					this.messageLogFile));					
-			}
-			catch (System.Security.SecurityException)
-			{
-				this.isMessageError = true;
-				this.eventLog.Write(string.Format(
-					"The user does not have the required permissions to write to the message file.{0}Message log path: {1}",
-					Environment.NewLine,
-					this.messageLogFile));					
-			}
-			catch (Exception ex)
-			{
-				this.isMessageError = true;
-				this.eventLog.Write(string.Format(
-					"An error occurred trying to write to the message log:{0}{1}.{2}Message log path: {3}",
-					Environment.NewLine,
-					ex.Message,
-					Environment.NewLine,
-					this.messageLogFile));					
+
+            try
+            {
+                using (StreamWriter sw =
+                       new StreamWriter(messageLogFile, true))
+                {
+                    sw.WriteLine(message);
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                isMessageError = true;
+                eventLog.Write(
+                    $"Access to the message log file is denied.{NewLine}Message log path: {messageLogFile}");
+            }
+            catch (DirectoryNotFoundException)
+            {
+                isMessageError = true;
+                eventLog.Write(
+                    $"The message file directory could not be found.{NewLine}Message log path: {messageLogFile}");
+            }
+            catch (PathTooLongException)
+            {
+                isMessageError = true;
+                eventLog.Write(
+                    $"The message log path is too long. The total length of the path must be less than 260 characters.{NewLine}Message log path: {messageLogFile}");
+            }
+            catch (IOException)
+            {
+                isMessageError = true;
+                eventLog.Write(
+                    $"The message log path is invalid.{NewLine}Message log path: {messageLogFile}");
+            }
+            catch (System.Security.SecurityException)
+            {
+                isMessageError = true;
+                eventLog.Write(
+                    $"The user does not have the required permissions to write to the message file.{NewLine}Message log path: {messageLogFile}");
+            }
+            catch (Exception ex)
+            {
+                isMessageError = true;
+                eventLog.Write(
+                    $"An error occurred trying to write to the message log:{NewLine}{ex.Message}.{NewLine}Message log path: {messageLogFile}");
 			}
 		}
 		#endregion
@@ -140,92 +127,81 @@ namespace TE.Plex
 		/// </summary>
 		private void Initialize()
 		{	
-			this.eventLog = new Logger("Plex Media Server Updater");
+			eventLog = new Logger("Plex Media Server Updater");
 			
 			try
 			{
-				this.server = new MediaServer(true);
+				server = new MediaServer(true);
 			}
 			catch (AppNotInstalledException)
 			{
-				this.eventLog.Write(
+				eventLog.Write(
 					"The Plex Media Server is not installed.");
 				return;
 			}
 			catch (ServiceNotInstalledException)
 			{
-				this.eventLog.Write(
+				eventLog.Write(
 					"The Plex Media Server service is not installed.");
 				return;				
 			}
-			catch (TE.LocalSystem.WindowsUserSidNotFound ex)
+			catch (WindowsUserSidNotFound ex)
 			{
-				this.eventLog.Write(ex.Message);
+				eventLog.Write(ex.Message);
 				return;					
 			}
 			catch (Exception ex)
 			{
-				this.eventLog.Write(string.Format(
-					"An error occurred:{0}{1}",
-					Environment.NewLine,
-					ex.Message));
+                eventLog.Write($"An error occurred:{NewLine}{ex.Message}");
 				return;				
 			}
 			
-			this.server.UpdateMessage += 
+			server.UpdateMessage += 
 				new MediaServer.UpdateMessageHandler(ServerUpdateMessage);
 			
-			this.messageLogFile = this.server.GetMessageLogFilePath();
-			this.isMessageError = (this.messageLogFile.Length > 0);
+			messageLogFile = server.GetMessageLogFilePath();
+			isMessageError = (messageLogFile.Length > 0);
 			
-			if (!string.IsNullOrEmpty(this.messageLogFile))
+			if (!string.IsNullOrEmpty(messageLogFile))
 			{
 				// If the message log file exists, attempt to delete it
-				if (File.Exists(this.messageLogFile))
+				if (File.Exists(messageLogFile))
 				{
 					try
 					{
-						File.Delete(this.messageLogFile);
+						File.Delete(messageLogFile);
 					}
 					catch (PathTooLongException)
 					{
-						this.eventLog.Write(string.Format(
-							"The message log file path is too long.{0}Message log path:  {1}",
-							Environment.NewLine,
-							this.messageLogFile));
+                        eventLog.Write(
+                            $"The message log file path is too long.{NewLine}Message log path: {messageLogFile}");
 						
-						this.isMessageError = false;
-						this.messageLogFile = string.Empty;
+						isMessageError = false;
+						messageLogFile = string.Empty;
 					}					
 					catch (IOException)
 					{
-						this.eventLog.Write(string.Format(
-							"The message log file is in use. The messages won't be written to the log file but the installation log will still be written.{0}Message log path:  {1}",
-							Environment.NewLine,
-							this.messageLogFile));
+                        eventLog.Write(
+                            $"The message log file is in use. The messages won't be written to the log file but the installation log will still be written.{NewLine}Message log path: {messageLogFile}");
 
-						this.isMessageError = false;						
-						this.messageLogFile = string.Empty;
+						isMessageError = false;						
+						messageLogFile = string.Empty;
 					}
 					catch (NotSupportedException)
 					{
-						this.eventLog.Write(string.Format(
-							"The message log path is invalid.{0}Message log path: {1}",
-							Environment.NewLine,
-							this.messageLogFile));
+                        eventLog.Write(
+                            $"The message log path is invalid.{NewLine}Message log path: {messageLogFile}");
 
-						this.isMessageError = false;						
-						this.messageLogFile = string.Empty;
+						isMessageError = false;						
+						messageLogFile = string.Empty;
 					}
 					catch (UnauthorizedAccessException)
 					{
-						this.eventLog.Write(string.Format(
-							"The message log path cannot be accessed.{0}Message log path: {1}",
-							Environment.NewLine,
-							this.messageLogFile));
+                        eventLog.Write(
+                            $"The message log path cannot be accessed.{NewLine}Message log path: {messageLogFile}");
 						
-						this.isMessageError = false;						
-						this.messageLogFile = string.Empty;
+						isMessageError = false;						
+						messageLogFile = string.Empty;
 					}
 				}
 			}
@@ -240,17 +216,14 @@ namespace TE.Plex
 		{
 			try
 			{
-			if (this.server.IsUpdateAvailable())
+			if (server.IsUpdateAvailable())
 			{						
-				this.server.Update();
+				server.Update();
 			}
 			}
 			catch (Exception ex)
 			{
-				this.eventLog.Write(string.Format(
-					"An error occurred: {0}{1}",
-					Environment.NewLine,
-					ex.Message));
+                eventLog.Write($"An error occurred: {NewLine}{ex.Message}");
 			}
 		}
 		#endregion

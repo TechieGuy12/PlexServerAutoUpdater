@@ -1,4 +1,5 @@
 ﻿using System;
+using static System.Environment;
 using System.Linq;
 using System.Management;
 using System.ServiceProcess;
@@ -42,7 +43,7 @@ namespace TE.Plex
 			try
 			{
 				// Get the LogOnUser for the Plex Media Server service
-				this.LogOnUser = GetServiceUser();
+				LogOnUser = GetServiceUser();
 			}
 			catch (WindowsUserSidNotFound)
 			{
@@ -52,7 +53,7 @@ namespace TE.Plex
 			
 			// If a WindowsUser object was not returned, throw an exception
 			// indicating the service does not exist
-			if (this.LogOnUser == null)
+			if (LogOnUser == null)
 			{
 				throw new ServiceNotInstalledException(
 					"The Plex Media Server service is not installed.");
@@ -76,7 +77,7 @@ namespace TE.Plex
 			{
 				ManagementObject service = 
 					new ManagementObject(
-						"Win32_Service.Name='" + ServiceName + "'");
+						$"Win32_Service.Name='{ServiceName}'");
 				
 				if (service == null)
 				{
@@ -85,7 +86,7 @@ namespace TE.Plex
 				
 				service.Get();
 				user = new WindowsUser(service["startname"].ToString().Replace(
-					@".\", System.Environment.MachineName + @"\"));
+					@".\", $"{MachineName}\\"));
 			}
 			
 			return user;

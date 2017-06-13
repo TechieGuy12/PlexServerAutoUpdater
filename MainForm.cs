@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using static System.Environment;
 using System.Windows.Forms;
 
 namespace TE.Plex
@@ -24,7 +25,7 @@ namespace TE.Plex
 		public MainForm()
 		{
 			InitializeComponent();			
-			this.Initialize();
+			Initialize();
 		}
 		#endregion
 		
@@ -40,7 +41,7 @@ namespace TE.Plex
 		/// </param>
 		void BtnCancelClick(object sender, EventArgs e)
 		{
-			this.Close();
+			Close();
 		}
 		
 		/// <summary>
@@ -56,12 +57,12 @@ namespace TE.Plex
 		{
 			try
 			{
-				this.server.Update();
-				this.Initialize();
+				server.Update();
+				Initialize();
 			}
 			catch (Exception ex)
 			{
-				this.txtUpdateStatus.Text += "ERROR: " + ex.Message + Environment.NewLine;
+				txtUpdateStatus.Text += $"ERROR: {ex.Message}{NewLine}";
 			}
 		}
 		
@@ -73,7 +74,7 @@ namespace TE.Plex
 		/// </param>
 		private void ServerUpdateMessage(string message)
 		{
-			this.txtUpdateStatus.Text += message + Environment.NewLine;			
+			txtUpdateStatus.Text += $"{message}{NewLine}";			
 		}
 		#endregion
 		
@@ -85,14 +86,14 @@ namespace TE.Plex
 		{			
 			try
 			{				
-				this.server = new MediaServer();
+				server = new MediaServer();
 				
-				if (this.server == null)
+				if (server == null)
 				{
-					this.Close();
+					Close();
 				}
 				
-				this.server.UpdateMessage += 
+				server.UpdateMessage += 
 					new MediaServer.UpdateMessageHandler(ServerUpdateMessage);
 
 				lblInstalledVersion.Text = server.CurrentVersion.ToString();
@@ -104,11 +105,11 @@ namespace TE.Plex
 			catch (TE.LocalSystem.Msi.MSIException ex)
 			{
 				MessageBox.Show(
-					"MSI:" + ex.Message,
+					$"MSI: {ex.Message}",
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				this.Close();
+				Close();
 			}
 			catch(AppNotInstalledException ex)
 			{
@@ -117,7 +118,7 @@ namespace TE.Plex
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				this.Close();
+				Close();
 			}
 			catch (ServiceNotInstalledException ex)
 			{
@@ -126,7 +127,7 @@ namespace TE.Plex
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				this.Close();
+				Close();
 			}
 			catch (PlexDataFolderNotFoundException ex)
 			{
@@ -135,7 +136,7 @@ namespace TE.Plex
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				this.Close();
+				Close();
 			}			
 			catch (TE.LocalSystem.WindowsUserSidNotFound ex)
 			{
@@ -144,7 +145,7 @@ namespace TE.Plex
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				this.Close();
+				Close();
 			}
 			catch (Exception ex)
 			{
@@ -153,7 +154,7 @@ namespace TE.Plex
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				this.Close();
+				Close();
 			}
 		}
 		#endregion

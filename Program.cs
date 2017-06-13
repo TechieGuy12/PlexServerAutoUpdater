@@ -1,8 +1,10 @@
 ﻿using System;
 using System.ComponentModel;
+using static System.Environment;
 using System.Windows.Forms;
 using TE.LocalSystem;
 using TE;
+using static TE.SystemExitCodes;
 
 namespace TE.Plex
 {
@@ -38,7 +40,7 @@ namespace TE.Plex
 							MessageBoxIcon.Stop);
 					}
 					
-					Environment.Exit(SystemExitCodes.ERROR_ACCESS_DENIED);
+					Exit(ERROR_ACCESS_DENIED);
 				}				
 			}
 			catch (Exception ex)
@@ -46,13 +48,13 @@ namespace TE.Plex
 				if (!isSilent)
 				{
 					MessageBox.Show(
-						ex.Message,
+						$"{ex.Message}{NewLine}Inner Exception:{NewLine}{ex.InnerException}",
 						"Plex Server Updater",
 						MessageBoxButtons.OK,
 						MessageBoxIcon.Stop);					
 				}
 				
-				Environment.Exit(-1);
+				Exit(-1);
 			}
 			
 			if (isSilent)
@@ -62,12 +64,12 @@ namespace TE.Plex
 					// Run the update silently
 					SilentUpdate silentUpdate = new SilentUpdate();
 					silentUpdate.Run();
-					Environment.Exit(SystemExitCodes.ERROR_SUCCESS);
+					Exit(ERROR_SUCCESS);
 					
 				}
 				catch
 				{
-					Environment.Exit(-1);
+					Exit(-1);
 				}
 			}
 			else

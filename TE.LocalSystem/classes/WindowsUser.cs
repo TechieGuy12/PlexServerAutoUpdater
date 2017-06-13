@@ -136,7 +136,7 @@ namespace TE.LocalSystem
 		/// <summary>
 		/// Gets the local application data path for the Windows user.
 		/// </summary>
-		/// <exception cref="TE.LocalSystem.WindowsUserSidNotFound">
+		/// <exception cref="WindowsUserSidNotFound">
 		/// Thrown when the SID for the user is null or empty.
 		/// </exception>
 		/// <returns>
@@ -423,7 +423,7 @@ namespace TE.LocalSystem
 		/// <summary>
 		/// Initializes the objects and properties in the class.
 		/// </summary>
-		/// <exception cref="TE.LocalSystem.WindowsUserSidNotFound">
+		/// <exception cref="WindowsUserSidNotFound">
 		/// Thrown when the SID for the user is null or empty.
 		/// </exception>
 		private void Initialize(string name)

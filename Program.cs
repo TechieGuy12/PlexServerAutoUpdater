@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using static System.Console;
 using static System.Environment;
 using System.Windows.Forms;
 using TE.LocalSystem;
@@ -25,10 +26,16 @@ namespace TE.Plex
 			
 			try
 			{
-				WindowsUser user = new WindowsUser();
-				
-				// Check if the user running this application is an administrator
-				if (!user.IsAdministrator())
+#if DEBUG
+                WriteLine("Getting windows user.");
+#endif
+                WindowsUser user = new WindowsUser();
+
+#if DEBUG
+                WriteLine("Checking if user is an administrator.");
+#endif
+                // Check if the user running this application is an administrator
+                if (!user.IsAdministrator())
 				{
 					if (!isSilent)
 					{
@@ -47,12 +54,20 @@ namespace TE.Plex
 			{
 				if (!isSilent)
 				{
-					MessageBox.Show(
-						$"{ex.Message}{NewLine}Inner Exception:{NewLine}{ex.InnerException}",
+#if DEBUG
+                    MessageBox.Show(
+						$"{ex.Message}{NewLine}{NewLine}Inner Exception:{NewLine}{ex.InnerException}{NewLine}{NewLine}StackTrace:{NewLine}{ex.StackTrace}",
 						"Plex Server Updater",
 						MessageBoxButtons.OK,
 						MessageBoxIcon.Stop);					
-				}
+#else
+                    MessageBox.Show(
+                        ex.Message,
+                        "Plex Server Updater",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Stop);
+#endif
+                }
 				
 				Exit(-1);
 			}
@@ -61,8 +76,11 @@ namespace TE.Plex
 			{
 				try
 				{
-					// Run the update silently
-					SilentUpdate silentUpdate = new SilentUpdate();
+#if DEBUG
+                    WriteLine("Initializing a silent update.");
+#endif
+                    // Run the update silently
+                    SilentUpdate silentUpdate = new SilentUpdate();
 					silentUpdate.Run();
 					Exit(ERROR_SUCCESS);
 					
@@ -74,19 +92,44 @@ namespace TE.Plex
 			}
 			else
 			{
-				// Display the main form
-				Application.EnableVisualStyles();
-				Application.SetCompatibleTextRenderingDefault(false);
-				
-				MainForm mainForm = new MainForm();
-				
-				// Check to see if the form is disposed becase there was an
-				// issue with initializing the form
-				if (!mainForm.IsDisposed)
-				{
-					Application.Run(mainForm);
-				}
-			}
+                try
+                {
+                    // Display the main form
+                    Application.EnableVisualStyles();
+                    Application.SetCompatibleTextRenderingDefault(false);
+
+#if DEBUG
+                    WriteLine("Initializing the update window.");
+#endif
+                    MainForm mainForm = new MainForm();
+
+                    // Check to see if the form is disposed becase there was an
+                    // issue with initializing the form
+                    if (!mainForm.IsDisposed)
+                    {
+#if DEBUG
+                        WriteLine("Displaying the update window.");
+#endif
+                        Application.Run(mainForm);
+                    }
+                }
+                catch (Exception ex)
+                {
+#if DEBUG
+                    MessageBox.Show(
+                        $"{ex.Message}{NewLine}{NewLine}Inner Exception:{NewLine}{ex.InnerException}{NewLine}{NewLine}StackTrace:{NewLine}{ex.StackTrace}",
+                        "Plex Server Updater",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Stop);
+#else
+                    MessageBox.Show(
+                        ex.Message,
+                        "Plex Server Updater",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Stop);
+#endif
+                }
+            }
 		}			
 	}
 }

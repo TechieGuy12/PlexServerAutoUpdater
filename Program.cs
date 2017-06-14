@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using static System.Console;
 using static System.Environment;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using TE.LocalSystem;
 using TE;
@@ -13,14 +14,22 @@ namespace TE.Plex
 	/// Class with program entry point.
 	/// </summary>
 	internal sealed class Program
-	{				
-		/// <summary>
-		/// Program entry point.
-		/// </summary>
-		[STAThread]
+	{
+        [DllImport("kernel32.dll")]
+        static extern bool AttachConsole(int dwProcessId);
+        private const int ATTACH_PARENT_PROCESS = -1;
+
+        /// <summary>
+        /// Program entry point.
+        /// </summary>
+        [STAThread]
 		private static void Main(string[] args)
 		{
-			Arguments arguments = new Arguments(args);
+            // redirect console output to parent process;
+            // must be before any calls to Console.WriteLine()
+            AttachConsole(ATTACH_PARENT_PROCESS);
+
+            Arguments arguments = new Arguments(args);
 			
 			bool isSilent = (arguments["silent"] != null);
 			

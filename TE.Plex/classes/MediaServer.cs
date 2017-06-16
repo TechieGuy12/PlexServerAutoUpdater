@@ -380,7 +380,7 @@ namespace TE.Plex
 			
 			try
 			{
-				FileVersionInfo version = 
+			    FileVersionInfo version = 
 					FileVersionInfo.GetVersionInfo(filePath);
 				return version.FileVersion;
 			}
@@ -417,7 +417,7 @@ namespace TE.Plex
 		/// <returns>
 		/// The installation path of Plex Media Server.
 		/// </returns>
-		/// <exception cref=" TE.Plex.AppNotInstalledException">
+		/// <exception cref="AppNotInstalledException">
 		/// The Plex Media Server is not installed.
 		/// </exception>
 		private string GetInstallPath()
@@ -456,15 +456,15 @@ namespace TE.Plex
 		}
 		
 		/// <summary>
-		/// Initializes the <see cref="TE.Plex.MediaServer"/> class.
+		/// Initializes the <see cref="MediaServer"/> class.
 		/// </summary>
-		/// <exception cref="TE.Plex.AppNotInstalledException">
+		/// <exception cref="AppNotInstalledException">
 		/// The Plex Media Server is not installed.
 		/// </exception>
-		/// <exception cref="TE.Plex.ServiceNotInstalledException">
+		/// <exception cref="ServiceNotInstalledException">
 		/// The Plex Media Server service is not installed.
 		/// </exception>
-		/// <exception cref="TE.Plex.PlexDataFolderNotFoundException">
+		/// <exception cref="PlexDataFolderNotFoundException">
 		/// The Plex Media Server service local applicaiton data folder could
 		/// not be found.
 		/// </exception>

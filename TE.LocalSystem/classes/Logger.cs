@@ -25,13 +25,13 @@ namespace TE.LocalSystem
 		
 		#region Constructors
 		/// <summary>
-		/// Initializes an instance of the <see cref="TE.LocalSystem.Logger"/>
+		/// Initializes an instance of the <see cref="Logger"/>
 		/// class when provided with the event source..
 		/// </summary>
 		public Logger(string eventSource)
 		{
-			this.Initialize();
-			this.EventSource = eventSource;
+			Initialize();
+			EventSource = eventSource;
 		}
 		#endregion
 		
@@ -41,34 +41,34 @@ namespace TE.LocalSystem
 		/// </summary>
 		private void Initialize()
 		{
-			this.EventSource = string.Empty;
-			this.LogName = "Application";
-			this.EntryType = EventLogEntryType.Information;
+			EventSource = string.Empty;
+			LogName = "Application";
+			EntryType = EventLogEntryType.Information;
 		}
 		#endregion
 		
 		#region Public Functions
 		public void Write(string message)
 		{
-			if (string.IsNullOrEmpty(this.EventSource))
+			if (string.IsNullOrEmpty(EventSource))
 			{
 				return;
 			}
 			
-			if (string.IsNullOrEmpty(this.LogName))
+			if (string.IsNullOrEmpty(LogName))
 			{
 				return;
 			}
 			
 			try
 			{
-				if (!EventLog.SourceExists(this.EventSource))
+				if (!EventLog.SourceExists(EventSource))
 				{
-					EventLog.CreateEventSource(this.EventSource, this.LogName);
+					EventLog.CreateEventSource(EventSource, LogName);
 				}
 				
-				EventLog.WriteEntry(this.EventSource, message, this.EntryType);
-				}
+				EventLog.WriteEntry(EventSource, message, EntryType);
+			}
 			catch (System.Security.SecurityException)
 			{
 				return;

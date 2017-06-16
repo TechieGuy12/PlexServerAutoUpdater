@@ -16,15 +16,25 @@ namespace TE.Plex
 		/// The media server object.
 		/// </summary>
 		private MediaServer server = null;
-		#endregion
-		
-		#region Constructors
-		/// <summary>
-		/// Initializes the form.
-		/// </summary>
-		public MainForm()
+        #endregion
+
+
+        #region Properties
+        /// <summary>
+        /// Gets a flag indicating if the form is to be closed.
+        /// </summary>
+        public bool ToBeClosed { get; private set; }
+        #endregion
+
+        #region Constructors
+        /// <summary>
+        /// Initializes the form.
+        /// </summary>
+        public MainForm()
 		{
-			InitializeComponent();			
+            ToBeClosed = false;
+
+            InitializeComponent();			
 			Initialize();
 		}
 		#endregion
@@ -65,14 +75,32 @@ namespace TE.Plex
 				txtUpdateStatus.Text += $"ERROR: {ex.Message}{NewLine}";
 			}
 		}
-		
-		/// <summary>
-		/// The messages from the update execution.
-		/// </summary>
-		/// <param name="message">
-		/// The message to display on the form.
-		/// </param>
-		private void ServerUpdateMessage(string message)
+
+        /// <summary>
+        /// The form is shown.
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// Arguments associated with the event.
+        /// </param>
+        private void MainForm_Shown(object sender, EventArgs e)
+        {
+            // If the form is to be closed, then close the form.
+            if (ToBeClosed)
+            {
+                Close();
+            }
+        }
+
+        /// <summary>
+        /// The messages from the update execution.
+        /// </summary>
+        /// <param name="message">
+        /// The message to display on the form.
+        /// </param>
+        private void ServerUpdateMessage(string message)
 		{
 			txtUpdateStatus.Text += $"{message}{NewLine}";			
 		}
@@ -90,8 +118,9 @@ namespace TE.Plex
 				
 				if (server == null)
 				{
-					Close();
-				}
+                    ToBeClosed = true;
+                    return;
+                }
 				
 				server.UpdateMessage += 
 					new MediaServer.UpdateMessageHandler(ServerUpdateMessage);
@@ -102,15 +131,16 @@ namespace TE.Plex
 				btnUpdate.Enabled = 
 					(server.LatestVersion > server.CurrentVersion);
 			}
-			catch (TE.LocalSystem.Msi.MSIException ex)
+			catch (LocalSystem.Msi.MSIException ex)
 			{
 				MessageBox.Show(
 					$"MSI: {ex.Message}",
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				Close();
-			}
+                ToBeClosed = true;
+
+            }
 			catch(AppNotInstalledException ex)
 			{
 				MessageBox.Show(
@@ -118,8 +148,8 @@ namespace TE.Plex
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				Close();
-			}
+                ToBeClosed = true;
+            }
 			catch (ServiceNotInstalledException ex)
 			{
 				MessageBox.Show(
@@ -127,8 +157,8 @@ namespace TE.Plex
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				Close();
-			}
+                ToBeClosed = true;
+            }
 			catch (PlexDataFolderNotFoundException ex)
 			{
 				MessageBox.Show(
@@ -136,27 +166,36 @@ namespace TE.Plex
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				Close();
-			}			
-			catch (TE.LocalSystem.WindowsUserSidNotFound ex)
+                ToBeClosed = true;
+            }			
+			catch (LocalSystem.WindowsUserSidNotFound ex)
 			{
 				MessageBox.Show(
 					ex.Message,
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				Close();
-			}
+                ToBeClosed = true;
+            }
+
 			catch (Exception ex)
 			{
-				MessageBox.Show(
+#if DEBUG
+                MessageBox.Show(
+                    $"{ex.Message}{NewLine}{NewLine}Inner Exception:{NewLine}{ex.InnerException}{NewLine}{NewLine}StackTrace:{NewLine}{ex.StackTrace}",
+                    "Plex Updater Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Stop);
+#else
+                MessageBox.Show(
 					ex.Message,
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-				Close();
-			}
+#endif
+                ToBeClosed = true;
+            }
 		}
-		#endregion
-	}
+        #endregion
+    }
 }

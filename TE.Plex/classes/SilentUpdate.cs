@@ -21,10 +21,6 @@ namespace TE.Plex
 		/// </summary>
 		private string messageLogFile;
 		/// <summary>
-		/// The logger.
-		/// </summary>
-		private Logger eventLog = null;
-		/// <summary>
 		/// Flag indicating that there was an issue writing a message to the
 		/// message log file.
 		/// </summary>
@@ -46,10 +42,13 @@ namespace TE.Plex
 		/// Writes any messages from the Plex Media Server update to a log
 		/// file.
 		/// </summary>
+        /// <param name="sender">
+        /// The sender object.
+        /// </param>
 		/// <param name="message">
 		/// The message to write to the log file.
 		/// </param>
-		private void ServerUpdateMessage(string message)
+		private void ServerUpdateMessage(object sender, string message)
 		{
 			// If an error occurred when writing an update message to the log
 			// file, just return from the function without trying again
@@ -60,17 +59,14 @@ namespace TE.Plex
 			
 			if (server != null)
 			{					
-				isMessageError = true;
-				
-				eventLog.EntryType = EventLogEntryType.Error;
-				eventLog.Write(
-					"There was an issue connecting to the media server.");
+				isMessageError = true;				
+				Log.Write("There was an issue connecting to the media server.");
 			}
 			
 			if (!string.IsNullOrEmpty(messageLogFile))
 			{	
 				isMessageError = true;
-				eventLog.Write(
+				Log.Write(
 					"The message log file was not specified. The installation log will still be written.");
 			}
 
@@ -80,42 +76,43 @@ namespace TE.Plex
                        new StreamWriter(messageLogFile, true))
                 {
                     sw.WriteLine(message);
+                    Log.Write(message);
                 }
             }
             catch (UnauthorizedAccessException)
             {
                 isMessageError = true;
-                eventLog.Write(
+                Log.Write(
                     $"Access to the message log file is denied.{NewLine}Message log path: {messageLogFile}");
             }
             catch (DirectoryNotFoundException)
             {
                 isMessageError = true;
-                eventLog.Write(
+                Log.Write(
                     $"The message file directory could not be found.{NewLine}Message log path: {messageLogFile}");
             }
             catch (PathTooLongException)
             {
                 isMessageError = true;
-                eventLog.Write(
+                Log.Write(
                     $"The message log path is too long. The total length of the path must be less than 260 characters.{NewLine}Message log path: {messageLogFile}");
             }
             catch (IOException)
             {
                 isMessageError = true;
-                eventLog.Write(
+                Log.Write(
                     $"The message log path is invalid.{NewLine}Message log path: {messageLogFile}");
             }
             catch (System.Security.SecurityException)
             {
                 isMessageError = true;
-                eventLog.Write(
+                Log.Write(
                     $"The user does not have the required permissions to write to the message file.{NewLine}Message log path: {messageLogFile}");
             }
             catch (Exception ex)
             {
                 isMessageError = true;
-                eventLog.Write(
+                Log.Write(
                     $"An error occurred trying to write to the message log:{NewLine}{ex.Message}.{NewLine}Message log path: {messageLogFile}");
 			}
 		}
@@ -126,33 +123,31 @@ namespace TE.Plex
 		/// Initializes the properties and variables for the class.
 		/// </summary>
 		private void Initialize()
-		{	
-			eventLog = new Logger("Plex Media Server Updater");
-			
+		{				
 			try
 			{
 				server = new MediaServer(true);
 			}
 			catch (AppNotInstalledException)
 			{
-				eventLog.Write(
+				Log.Write(
 					"The Plex Media Server is not installed.");
 				return;
 			}
 			catch (ServiceNotInstalledException)
 			{
-				eventLog.Write(
+				Log.Write(
 					"The Plex Media Server service is not installed.");
 				return;				
 			}
 			catch (WindowsUserSidNotFound ex)
 			{
-				eventLog.Write(ex.Message);
+				Log.Write(ex.Message);
 				return;					
 			}
 			catch (Exception ex)
 			{
-                eventLog.Write($"An error occurred:{NewLine}{ex.Message}");
+                Log.Write(ex);
 				return;				
 			}
 			
@@ -173,7 +168,7 @@ namespace TE.Plex
 					}
 					catch (PathTooLongException)
 					{
-                        eventLog.Write(
+                        Log.Write(
                             $"The message log file path is too long.{NewLine}Message log path: {messageLogFile}");
 						
 						isMessageError = false;
@@ -181,7 +176,7 @@ namespace TE.Plex
 					}					
 					catch (IOException)
 					{
-                        eventLog.Write(
+                        Log.Write(
                             $"The message log file is in use. The messages won't be written to the log file but the installation log will still be written.{NewLine}Message log path: {messageLogFile}");
 
 						isMessageError = false;						
@@ -189,7 +184,7 @@ namespace TE.Plex
 					}
 					catch (NotSupportedException)
 					{
-                        eventLog.Write(
+                        Log.Write(
                             $"The message log path is invalid.{NewLine}Message log path: {messageLogFile}");
 
 						isMessageError = false;						
@@ -197,7 +192,7 @@ namespace TE.Plex
 					}
 					catch (UnauthorizedAccessException)
 					{
-                        eventLog.Write(
+                        Log.Write(
                             $"The message log path cannot be accessed.{NewLine}Message log path: {messageLogFile}");
 						
 						isMessageError = false;						
@@ -216,14 +211,20 @@ namespace TE.Plex
 		{
 			try
 			{
-			if (server.IsUpdateAvailable())
-			{						
-				server.Update();
-			}
+                Log.Write("Checking for server update.");
+			    if (server.IsUpdateAvailable())
+			    {
+                    Log.Write("Update is available");
+				    server.Update();
+			    }
+                else
+                {
+                    Log.Write("No update is available. Exiting.");
+                }
 			}
 			catch (Exception ex)
 			{
-                eventLog.Write($"An error occurred: {NewLine}{ex.Message}");
+                Log.Write(ex);
 			}
 		}
 		#endregion

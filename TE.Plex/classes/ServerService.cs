@@ -71,23 +71,32 @@ namespace TE.Plex
 		/// </returns>
 		private WindowsUser GetServiceUser()
 		{
+            Log.Write("Getting the service user.");
 			WindowsUser user = null;
 			
 			if (IsInstalled())
 			{
+                Log.Write("The Plex service is installed. Let's get the user associated with the service.");
 				ManagementObject service = 
 					new ManagementObject(
 						$"Win32_Service.Name='{ServiceName}'");
 				
 				if (service == null)
 				{
+                    Log.Write("The service user could not be found.");
 					return null;
 				}
 				
 				service.Get();
 				user = new WindowsUser(service["startname"].ToString().Replace(
 					@".\", $"{MachineName}\\"));
+
+                Log.Write($"The Plex service user: {user.Name}.");
 			}
+            else
+            {
+                Log.Write("The Plex service is not installed.");
+            }
 			
 			return user;
 		}

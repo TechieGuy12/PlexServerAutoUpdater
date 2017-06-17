@@ -15,9 +15,22 @@ namespace TE.Plex
 	/// </summary>
 	internal sealed class Program
 	{
+        /// <summary>
+        /// The parent process.
+        /// </summary>
+        private const int ATTACH_PARENT_PROCESS = -1;
+
+        /// <summary>
+        /// Attach to the console window.
+        /// </summary>
+        /// <param name="dwProcessId">
+        /// The ID of the process.
+        /// </param>
+        /// <returns>
+        /// True if successful, false if not successful.
+        /// </returns>
         [DllImport("kernel32.dll")]
         static extern bool AttachConsole(int dwProcessId);
-        private const int ATTACH_PARENT_PROCESS = -1;
 
         /// <summary>
         /// Program entry point.
@@ -30,30 +43,31 @@ namespace TE.Plex
             AttachConsole(ATTACH_PARENT_PROCESS);
 
             Arguments arguments = new Arguments(args);
-			
+            Log.Delete();
+
 			bool isSilent = (arguments["silent"] != null);
 			
 			try
 			{
-#if DEBUG
-                WriteLine("Getting windows user.");
-#endif
+                Log.Write("Getting windows user.");
                 WindowsUser user = new WindowsUser();
 
-#if DEBUG
-                WriteLine("Checking if user is an administrator.");
-#endif
+                Log.Write("Checking if user is an administrator.");
                 // Check if the user running this application is an administrator
                 if (!user.IsAdministrator())
 				{
 					if (!isSilent)
 					{
-						// If the user is not an administrator, then exit
+                        string message = "This application must be run from an administrative account.";
+						
+                        // If the user is not an administrator, then exit
 						MessageBox.Show(
-							"This application must be run from an administrative account.",
+							message,
 							"Plex Server Updater",
 							MessageBoxButtons.OK,
 							MessageBoxIcon.Stop);
+
+                        Log.Write(message);
 					}
 					
 					Exit(ERROR_ACCESS_DENIED);
@@ -63,19 +77,13 @@ namespace TE.Plex
 			{
 				if (!isSilent)
 				{
-#if DEBUG
-                    MessageBox.Show(
-						$"{ex.Message}{NewLine}{NewLine}Inner Exception:{NewLine}{ex.InnerException}{NewLine}{NewLine}StackTrace:{NewLine}{ex.StackTrace}",
-						"Plex Server Updater",
-						MessageBoxButtons.OK,
-						MessageBoxIcon.Stop);					
-#else
                     MessageBox.Show(
                         ex.Message,
                         "Plex Server Updater",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Stop);
-#endif
+
+                    Log.Write(ex);
                 }
 				
 				Exit(-1);
@@ -85,9 +93,7 @@ namespace TE.Plex
 			{
 				try
 				{
-#if DEBUG
-                    WriteLine("Initializing a silent update.");
-#endif
+                    Log.Write("Initializing the silent update.");
                     // Run the update silently
                     SilentUpdate silentUpdate = new SilentUpdate();
 					silentUpdate.Run();
@@ -107,36 +113,26 @@ namespace TE.Plex
                     Application.EnableVisualStyles();
                     Application.SetCompatibleTextRenderingDefault(false);
 
-#if DEBUG
-                    WriteLine("Initializing the update window.");
-#endif
+                    Log.Write("Initializing the update window.");
                     MainForm mainForm = new MainForm();
 
                     // Check to see if the form is disposed becase there was an
                     // issue with initializing the form
                     if (!mainForm.IsDisposed)
                     {
-#if DEBUG
-                        WriteLine("Displaying the update window.");
-#endif
+                        Log.Write("Displaying the update window.");
                         Application.Run(mainForm);
                     }
                 }
                 catch (Exception ex)
-                {
-#if DEBUG
-                    MessageBox.Show(
-                        $"{ex.Message}{NewLine}{NewLine}Inner Exception:{NewLine}{ex.InnerException}{NewLine}{NewLine}StackTrace:{NewLine}{ex.StackTrace}",
-                        "Plex Server Updater",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Stop);
-#else
+                {                    
                     MessageBox.Show(
                         ex.Message,
                         "Plex Server Updater",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Stop);
-#endif
+
+                    Log.Write(ex);
                 }
             }
 		}			

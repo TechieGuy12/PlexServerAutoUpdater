@@ -51,6 +51,7 @@ namespace TE.Plex
 		/// </param>
 		void BtnCancelClick(object sender, EventArgs e)
 		{
+            Log.Write("Closing the application.");
 			Close();
 		}
 		
@@ -73,6 +74,7 @@ namespace TE.Plex
 			catch (Exception ex)
 			{
 				txtUpdateStatus.Text += $"ERROR: {ex.Message}{NewLine}";
+                Log.Write(ex);
 			}
 		}
 
@@ -90,6 +92,7 @@ namespace TE.Plex
             // If the form is to be closed, then close the form.
             if (ToBeClosed)
             {
+                Log.Write("Closing the application.");
                 Close();
             }
         }
@@ -97,12 +100,16 @@ namespace TE.Plex
         /// <summary>
         /// The messages from the update execution.
         /// </summary>
+        /// <param name="sender">
+        /// The sender object.
+        /// </param>
         /// <param name="message">
         /// The message to display on the form.
         /// </param>
-        private void ServerUpdateMessage(string message)
+        private void ServerUpdateMessage(object sender, string message)
 		{
-			txtUpdateStatus.Text += $"{message}{NewLine}";			
+			txtUpdateStatus.Text += $"{message}{NewLine}";
+            Log.Write(message);
 		}
 		#endregion
 		
@@ -113,11 +120,14 @@ namespace TE.Plex
 		private void Initialize()
 		{			
 			try
-			{				
+			{
+                Log.Write("Initializing the Plex media server object.");
 				server = new MediaServer();
 				
 				if (server == null)
 				{
+                    Log.Write(
+                        "The Plex media server object could not be initialized. Setting the flag to close the application.");
                     ToBeClosed = true;
                     return;
                 }
@@ -134,65 +144,63 @@ namespace TE.Plex
 			catch (LocalSystem.Msi.MSIException ex)
 			{
 				MessageBox.Show(
-					$"MSI: {ex.Message}",
+					$"MSI exception: {ex.Message}",
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
+                Log.Write(ex);
                 ToBeClosed = true;
 
             }
 			catch(AppNotInstalledException ex)
 			{
 				MessageBox.Show(
-					ex.Message,
+					"The Plex Server application is not installed.",
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
+                Log.Write(ex);
                 ToBeClosed = true;
             }
 			catch (ServiceNotInstalledException ex)
 			{
 				MessageBox.Show(
-					ex.Message,
+					"The Plex service is not installed.",
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
+                Log.Write(ex);
                 ToBeClosed = true;
             }
 			catch (PlexDataFolderNotFoundException ex)
 			{
 				MessageBox.Show(
-					ex.Message,
+					"The Plex data folder could not be found.",
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
+                Log.Write(ex);
                 ToBeClosed = true;
             }			
 			catch (LocalSystem.WindowsUserSidNotFound ex)
 			{
 				MessageBox.Show(
-					ex.Message,
+					"The SID for the Plex service user could not be found.",
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
+                Log.Write(ex);
                 ToBeClosed = true;
             }
 
 			catch (Exception ex)
 			{
-#if DEBUG
-                MessageBox.Show(
-                    $"{ex.Message}{NewLine}{NewLine}Inner Exception:{NewLine}{ex.InnerException}{NewLine}{NewLine}StackTrace:{NewLine}{ex.StackTrace}",
-                    "Plex Updater Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Stop);
-#else
                 MessageBox.Show(
 					ex.Message,
 					"Plex Updater Error",
 					MessageBoxButtons.OK,
 					MessageBoxIcon.Error);
-#endif
+                Log.Write(ex);
                 ToBeClosed = true;
             }
 		}

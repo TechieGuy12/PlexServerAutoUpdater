@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle ("PlexServerAutoUpdater")]
-[assembly: AssemblyDescription ("")]
+[assembly: AssemblyDescription("Updates the Plex Server when it is run as a service.")]
 [assembly: AssemblyConfiguration ("")]
 [assembly: AssemblyCompany ("")]
 [assembly: AssemblyProduct ("PlexServerAutoUpdater")]
@@ -24,4 +24,4 @@ using System.Runtime.InteropServices;
 //
 // You can specify all the values or you can use the default the Revision and 
 // Build Numbers by using the '*' as shown below:
-[assembly: AssemblyVersion("0.1.3.7")]
+[assembly: AssemblyVersion("0.1.4.0")]

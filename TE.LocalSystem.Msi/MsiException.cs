@@ -3,10 +3,10 @@ using System.Runtime.Serialization;
 
 namespace TE.LocalSystem.Msi
 {
-	/// <summary>
-	/// An issue occurred with the Windows Installer.
-	/// </summary>
-	[Serializable]
+    /// <summary>
+    /// An issue occurred with the Windows Installer.
+    /// </summary>
+    [Serializable]
     internal class MSIException : Exception
     {
         /// <summary>
@@ -35,8 +35,8 @@ namespace TE.LocalSystem.Msi
         /// <param name="returnValue">
         /// The return value.
         /// </param>
-        public MSIException(int returnValue) 
-        	: this($"MSIError : {((MsiExitCodes)returnValue).ToString()}")
+        public MSIException(int returnValue)
+            : this($"MSIError : {((MsiExitCodes)returnValue).ToString()}")
         {
             ReturnValue = returnValue;
         }
@@ -51,8 +51,8 @@ namespace TE.LocalSystem.Msi
         /// <param name="innerException">
         /// The inner exception.
         /// </param>
-        public MSIException(string message, Exception innerException) 
-        	: base(message, innerException) { }
+        public MSIException(string message, Exception innerException)
+            : base(message, innerException) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MSIException"/> class
@@ -66,8 +66,8 @@ namespace TE.LocalSystem.Msi
         /// The streaming context.
         /// </param>
         protected MSIException(
-        	SerializationInfo info, 
-        	StreamingContext context) 
-        	: base(info, context) { }
+            SerializationInfo info,
+            StreamingContext context)
+            : base(info, context) { }
     }
 }

@@ -2,10 +2,10 @@
 
 namespace TE.LocalSystem.Msi
 {
-	/// <summary>
-	/// The standard properties for a Windows Installer file.
-	/// </summary>
-	public static class InstallProperty
+    /// <summary>
+    /// The standard properties for a Windows Installer file.
+    /// </summary>
+    public static class InstallProperty
     {
         public static readonly string InstalledProductName = "InstalledProductName";
         public static readonly string VersionString = "VersionString";

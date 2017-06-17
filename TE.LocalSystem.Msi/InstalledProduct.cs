@@ -5,15 +5,15 @@ using System.Text;
 
 namespace TE.LocalSystem.Msi
 {
-	/// <summary>
-	/// Description of InstalledProduct.
-	/// </summary>
-	public class InstalledProduct
+    /// <summary>
+    /// Description of InstalledProduct.
+    /// </summary>
+    public class InstalledProduct
     {
-		#region Public Variables
+        #region Public Variables
         public readonly string Guid;
-		#endregion
-		
+        #endregion
+
         #region Properties
         public string InstalledProductName { get { return Api.getProperty(Guid, InstallProperty.InstalledProductName); } }
         public string VersionString { get { return Api.getProperty(Guid, InstallProperty.VersionString); } }
@@ -42,15 +42,15 @@ namespace TE.LocalSystem.Msi
         public string MediaPackagePath { get { return Api.getProperty(Guid, InstallProperty.MediaPackagePath); } }
         public string DiskPrompt { get { return Api.getProperty(Guid, InstallProperty.DiskPrompt); } }
         #endregion
-        
-		#region Constructors
+
+        #region Constructors
         public InstalledProduct(string guid)
         {
             this.Guid = guid;
         }
-		#endregion
-		
-		#region Public Functions
+        #endregion
+
+        #region Public Functions
         /// <summary>
         /// Enumerates all MSI installed products
         /// </summary>
@@ -61,7 +61,7 @@ namespace TE.LocalSystem.Msi
         {
             foreach (var guid in Api.EnumerateProducts())
                 yield return new InstalledProduct(guid);
-        }     
+        }
 
         /// <summary>
         /// Returns a string that contains all the property names and values.

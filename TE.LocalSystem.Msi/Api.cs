@@ -5,8 +5,8 @@ using System.Text;
 
 namespace TE.LocalSystem.Msi
 {
-	#region Enumerations
-	    /// <summary>
+    #region Enumerations
+    /// <summary>
     /// All avalible MSI Setup install exit codes.
     /// </summary>
     public enum MsiExitCodes
@@ -472,19 +472,19 @@ namespace TE.LocalSystem.Msi
         All = (UserManaged | UserUnmanaged | Machine),
     }
     #endregion
-    
-	/// <summary>
-	/// Wrapper for the Windows Installer API.
-	/// </summary>
- 	public static class Api
+
+    /// <summary>
+    /// Wrapper for the Windows Installer API.
+    /// </summary>
+    public static class Api
     {
- 		#region API Declarations
+        #region API Declarations
         [DllImport("msi.dll", CharSet = CharSet.Unicode)]
         private static extern Int32 MsiGetProductInfo(
-        	string product, 
-        	string property, 
-        	[Out] String valueBuf,
-        	ref Int32 len);
+            string product,
+            string property,
+            [Out] String valueBuf,
+            ref Int32 len);
 
         [DllImport("msi.dll",
         EntryPoint = "MsiEnumProductsExW",
@@ -503,50 +503,50 @@ namespace TE.LocalSystem.Msi
 
         [DllImport("msi.dll", CharSet = CharSet.Unicode)]
         private static extern uint MsiEnumComponents(
-        	uint iComponentIndex,
-        	StringBuilder lpComponentBuf);
-  
+            uint iComponentIndex,
+            StringBuilder lpComponentBuf);
+
         [DllImport("msi.dll", CharSet = CharSet.Unicode)]
         private static extern UInt32 MsiLocateComponent(
-			string szComponent,
-			[Out] StringBuilder lpPathBuf,
-			ref UInt32 pcchBuf);
-    	#endregion
-    	
-    	#region Public Functions
+            string szComponent,
+            [Out] StringBuilder lpPathBuf,
+            ref UInt32 pcchBuf);
+        #endregion
+
+        #region Public Functions
         /// <summary>
         /// Enumerate all installed components.
         /// </summary>
         /// <returns>A List of strings containing all component GUIDs</returns>        
         public static List<string> EnumerateComponents()
         {
-        	List<string> guidList = new List<string>();
-        	uint ret = 0;
-        	uint i = 0;
-        	
-        	do
-        	{
-        		// Create the guid buffer
-        		StringBuilder guid = new StringBuilder(39);
-        		
-        		// Get a component GUID
-        		ret = Api.MsiEnumComponents(i, guid);
-        		
-        		// If the return code indicates a success, then add the GUID
-        		// to the list
-        		if (ret == 0)
-        		{
-        			guidList.Add(guid.ToString());
-        		}
-        		
-        		// Increment the counter
-        		i++;
-        		
-        	} while (ret != (uint)MsiExitCodes.NoMoreItems);
-        	
-        	return guidList;
+            List<string> guidList = new List<string>();
+            uint ret = 0;
+            uint i = 0;
+
+            do
+            {
+                // Create the guid buffer
+                StringBuilder guid = new StringBuilder(39);
+
+                // Get a component GUID
+                ret = Api.MsiEnumComponents(i, guid);
+
+                // If the return code indicates a success, then add the GUID
+                // to the list
+                if (ret == 0)
+                {
+                    guidList.Add(guid.ToString());
+                }
+
+                // Increment the counter
+                i++;
+
+            } while (ret != (uint)MsiExitCodes.NoMoreItems);
+
+            return guidList;
         }
-        
+
         /// <summary>
         /// Enumerate all installed products.
         /// </summary>
@@ -569,7 +569,7 @@ namespace TE.LocalSystem.Msi
 
             return guidList;
         }
-        
+
         /// <summary>
         /// Gets the path of the component using a GUID.
         /// </summary>
@@ -581,18 +581,18 @@ namespace TE.LocalSystem.Msi
         /// </returns>
         public static string GetComponentPath(string componentGuid)
         {
-        	//string path = new string(new char[255]);
-        	UInt32 buffer = 500;
-        	StringBuilder path = new StringBuilder(255);
-        	
-        	MsiLocateComponent(
-        		componentGuid,
-        		path,
-        		ref buffer);
-        	
-        	return path.ToString();
+            //string path = new string(new char[255]);
+            UInt32 buffer = 500;
+            StringBuilder path = new StringBuilder(255);
+
+            MsiLocateComponent(
+                componentGuid,
+                path,
+                ref buffer);
+
+            return path.ToString();
         }
-        
+
         /// <summary>
         /// Gets the path of a component using the key file of the component.
         /// </summary>
@@ -605,39 +605,39 @@ namespace TE.LocalSystem.Msi
         /// </returns>
         public static string GetComponentPathByFile(string fileName)
         {
-        	string path = string.Empty;
-        	uint ret = 0;
-        	uint i = 0;
-        	
-        	do
-        	{
-        		// Create the guid buffer
-        		StringBuilder guid = new StringBuilder(39);
-        		
-        		// Get a component GUID
-        		ret = Api.MsiEnumComponents(i, guid);
-        		
-        		// If the return code indicates a success, then add the GUID
-        		// to the list
-        		if (ret == 0)
-        		{
-        			string componentPath = 
-        				GetComponentPath(guid.ToString());
-        			if (componentPath.Contains(fileName))
-        			{
-        				path = componentPath;
-        			}
-        		}
-        		
-        		// Increment the counter
-        		i++;
-        		
-        	} while ((ret != (uint)MsiExitCodes.NoMoreItems) && (path.Length == 0));
-        	
-        	return path;        	
+            string path = string.Empty;
+            uint ret = 0;
+            uint i = 0;
+
+            do
+            {
+                // Create the guid buffer
+                StringBuilder guid = new StringBuilder(39);
+
+                // Get a component GUID
+                ret = Api.MsiEnumComponents(i, guid);
+
+                // If the return code indicates a success, then add the GUID
+                // to the list
+                if (ret == 0)
+                {
+                    string componentPath =
+                        GetComponentPath(guid.ToString());
+                    if (componentPath.Contains(fileName))
+                    {
+                        path = componentPath;
+                    }
+                }
+
+                // Increment the counter
+                i++;
+
+            } while ((ret != (uint)MsiExitCodes.NoMoreItems) && (path.Length == 0));
+
+            return path;
         }
-                        
-       	/// <summary>
+
+        /// <summary>
         /// Get property of a product indicated by GUID. Throws exception if cannot read the property.
         /// </summary>
         /// <param name="productGUID">Product GUID</param>
@@ -656,10 +656,10 @@ namespace TE.LocalSystem.Msi
             int returnValue = Api.MsiGetProductInfo(productGUID, propertyName, r, ref len);
             if (returnValue != 0)
             {
-            	if (propertyName != InstallProperty.DisplayName)
-            	{
-                	throw new MSIException(returnValue);
-            	}
+                if (propertyName != InstallProperty.DisplayName)
+                {
+                    throw new MSIException(returnValue);
+                }
             }
             return r;
         }

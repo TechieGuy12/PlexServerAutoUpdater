@@ -493,6 +493,12 @@ namespace TE.Plex
                     GetVersionFromFileName(
                         Path.GetFileName(LatestInstallPackage)));
             }
+            else
+            {
+                // Default the latest version to the currently installed
+                // version if an update doesn't exist
+                LatestVersion = CurrentVersion;
+            }
         }
 
         /// <summary>

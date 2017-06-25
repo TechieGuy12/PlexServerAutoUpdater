@@ -74,6 +74,11 @@ namespace TE
         /// </param>
         public static void Write(Exception ex, bool appendDate = true)
         {
+            if (ex == null)
+            {
+                return;
+            }
+
             string timeStamp = string.Empty;
             if (appendDate)
             {

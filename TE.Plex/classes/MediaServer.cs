@@ -576,7 +576,7 @@ namespace TE.Plex
         /// </summary>
         private void RunInstall()
         {
-            Log.Write("Staring Plex installation.");
+            Log.Write("Starting Plex installation.");
             Log.Write("Delete any previous installation logs.");
             string logFile = GetInstallLogFilePath();
             if (File.Exists(logFile))

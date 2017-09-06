@@ -623,7 +623,7 @@ namespace TE.Plex
                     process.StartInfo = new ProcessStartInfo
                     {
                         FileName = "taskkill.exe",
-                        Arguments = $" /IM {processName} / F"
+                        Arguments = $" /IM {processName} /F"
                     };
                     process.Start();
                     process.WaitForExit();

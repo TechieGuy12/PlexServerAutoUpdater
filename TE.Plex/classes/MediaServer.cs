@@ -605,10 +605,29 @@ namespace TE.Plex
         private void StopProcess(string processName)
         {
             Log.Write($"Stopping {processName} processes.");
-            foreach (Process proc in Process.GetProcessesByName(processName))
+            Process[] processes = Process.GetProcessesByName(processName);
+            foreach (Process proc in processes)
             {
                 proc.Kill();
                 proc.WaitForExit();
+            }
+
+            // Check to see if any processes are still running
+            processes = Process.GetProcessesByName(processName);
+            if (processes.Count() > 0)
+            {
+                // Use the nuclear way of killing the processes
+                foreach (Process proc in processes)
+                {
+                    Process process = new Process();
+                    process.StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "taskkill.exe",
+                        Arguments = $" /IM {processName} / F"
+                    };
+                    process.Start();
+                    process.WaitForExit();
+                }
             }
         }
         #endregion

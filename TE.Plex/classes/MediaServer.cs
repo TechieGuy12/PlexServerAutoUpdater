@@ -605,7 +605,12 @@ namespace TE.Plex
         private void StopProcess(string processName)
         {
             Log.Write($"Stopping {processName} processes.");
-            Process[] processes = Process.GetProcessesByName(processName);
+
+            // Drop the extension from the filename to get the process without
+            // using the file extension
+            string fileName = Path.GetFileNameWithoutExtension(processName);
+
+            Process[] processes = Process.GetProcessesByName(fileName);
             foreach (Process proc in processes)
             {
                 proc.Kill();
@@ -711,11 +716,13 @@ namespace TE.Plex
         {
             string[] processes =
             {
-                "Plex Media Scanner",
-                "PlexDlnaServer",
-                "PlexNewTranscoder",
-                "PlexScriptHost",
-                "PlexTranscoder"
+                "Plex Media Server.exe",
+                "Plex Media Scanner.exe",
+                "Plex Tuner Service.exe",
+                "PlexDlnaServer.exe",
+                "PlexNewTranscoder.exe",
+                "PlexScriptHost.exe",
+                "PlexTranscoder.exe"
             };
 
             Log.Write("Stopping the Plex Media Server processes.");

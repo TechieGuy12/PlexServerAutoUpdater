@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Drawing;
 using static System.Environment;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace TE.Plex
@@ -16,6 +18,11 @@ namespace TE.Plex
         /// The media server object.
         /// </summary>
         private MediaServer server = null;
+
+        /// <summary>
+        /// The cancellation token source.
+        /// </summary>
+        private CancellationTokenSource cts = null;
         #endregion
 
         #region Properties
@@ -40,7 +47,7 @@ namespace TE.Plex
 
         #region Events
         /// <summary>
-        /// Close the form.
+        /// Cancels the Plex update..
         /// </summary>
         /// <param name="sender">
         /// The sender.
@@ -49,6 +56,20 @@ namespace TE.Plex
         /// Event-related arguments.
         /// </param>
         void BtnCancelClick(object sender, EventArgs e)
+        {
+            cts?.Cancel();
+        }
+
+        /// <summary>
+        /// Close the form.
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// Event-related arguments.
+        /// </param>
+        private void btnExit_Click(object sender, EventArgs e)
         {
             Log.Write("Closing the application.");
             Close();
@@ -67,13 +88,30 @@ namespace TE.Plex
         {
             try
             {
-                server.Update();
-                Initialize();
+                btnUpdate.Enabled = false;
+                btnCancel.Visible = false;
+                btnExit.Enabled = false;
+
+                CancellationToken ct = cts.Token;
+
+                Task plexUpdate = Task.Factory.StartNew(() =>
+                {
+                    // Throw an exception if already cancelled
+                    ct.ThrowIfCancellationRequested();
+
+                    server.Update();
+                }, cts.Token);
+                
+                plexUpdate.Wait();
             }
             catch (Exception ex)
             {
                 txtUpdateStatus.Text += $"ERROR: {ex.Message}{NewLine}";
                 Log.Write(ex);
+            }
+            finally
+            {
+                Initialize();
             }
         }
 
@@ -137,8 +175,18 @@ namespace TE.Plex
                 lblInstalledVersion.Text = server.CurrentVersion.ToString();
                 lblLatestVersion.Text = server.LatestVersion.ToString();
 
-                btnUpdate.Enabled =
-                    (server.LatestVersion > server.CurrentVersion);
+                if (server.LatestVersion > server.CurrentVersion)
+                {
+                    btnUpdate.Visible = true;
+                    btnCancel.Visible = false;
+                    btnExit.Enabled = true;
+                }
+                else
+                {
+                    btnUpdate.Visible = false;
+                    btnCancel.Visible = false;
+                    btnExit.Enabled = true;
+                }
             }
             catch (LocalSystem.Msi.MSIException ex)
             {

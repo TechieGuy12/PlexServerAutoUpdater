@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using TE.LocalSystem.Msi;
+using TE.Plex.Update;
 
 namespace TE.Plex
 {
@@ -168,6 +169,22 @@ namespace TE.Plex
         }
         #endregion
 
+        #region Event Handlers
+        /// <summary>
+        /// Writes messages to the log.
+        /// </summary>
+        /// <param name="sender">
+        /// The object that triggered the event.
+        /// </param>
+        /// <param name="message">
+        /// The message to write to the log.
+        /// </param>
+        private void Message_Changed(object sender, string message)
+        {
+            Log.Write(message);
+        }
+        #endregion
+
         #region Private Functions
         /// <summary>
         /// Converts the version number from a string to a <see cref="System.Version"/>
@@ -288,6 +305,22 @@ namespace TE.Plex
                 return string.Empty;
             }
 
+            // Get the unique user SID for the Plex service user
+            serviceUserSid = plexService.LogOnUser.Sid;
+
+            LatestAvailableVersion availableVersion = new LatestAvailableVersion(
+                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+            availableVersion.MessageChanged += new MessageChangedEventHandler(Message_Changed);
+
+            if (availableVersion != null)
+            {
+                bool result = availableVersion.Download().Result;
+                if (!result)
+                {
+                    Log.Write("The latest available installation could not be downloaded.");
+                }
+            }
+
             Log.Write($"Verify the updates folder, {UpdatesFolder} exists.");
             if (!Directory.Exists(UpdatesFolder))
             {
@@ -297,7 +330,6 @@ namespace TE.Plex
             }
 
             Log.Write("Checking to see if updates folder exists.");
-            // Check to see if at least one update folder is available
             if (!Directory.EnumerateFileSystemEntries(UpdatesFolder).Any())
             {
                 Log.Write("Updates folder does not exist. Looks like a new install.");

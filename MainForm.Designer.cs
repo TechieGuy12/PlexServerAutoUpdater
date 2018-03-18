@@ -54,6 +54,7 @@ namespace TE.Plex
             this.lblInstalledVersion = new System.Windows.Forms.Label();
             this.lblLatestVersionLabel = new System.Windows.Forms.Label();
             this.lblInstalledVersionLabel = new System.Windows.Forms.Label();
+            this.btnExit = new System.Windows.Forms.Button();
             this.grpUpdateStatus.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
@@ -66,6 +67,7 @@ namespace TE.Plex
             this.btnCancel.TabIndex = 1;
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
+            this.btnCancel.Visible = false;
             this.btnCancel.Click += new System.EventHandler(this.BtnCancelClick);
             // 
             // btnUpdate
@@ -142,11 +144,22 @@ namespace TE.Plex
             this.lblInstalledVersionLabel.TabIndex = 0;
             this.lblInstalledVersionLabel.Text = "Installed Version:";
             // 
+            // btnExit
+            // 
+            this.btnExit.Location = new System.Drawing.Point(476, 398);
+            this.btnExit.Name = "btnExit";
+            this.btnExit.Size = new System.Drawing.Size(75, 23);
+            this.btnExit.TabIndex = 5;
+            this.btnExit.Text = "Exit";
+            this.btnExit.UseVisualStyleBackColor = true;
+            this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(563, 431);
+            this.Controls.Add(this.btnExit);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.grpUpdateStatus);
             this.Controls.Add(this.btnUpdate);
@@ -165,5 +178,7 @@ namespace TE.Plex
             this.ResumeLayout(false);
 
 		}
-	}
+
+        private System.Windows.Forms.Button btnExit;
+    }
 }

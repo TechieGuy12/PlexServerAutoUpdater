@@ -54,6 +54,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\Visual Studio 2017\Projects\Supporting\Newtonsoft.Json\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -64,6 +67,7 @@
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Management" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Security.Principal" />
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Text.RegularExpressions" />
@@ -80,6 +84,10 @@
     <Compile Include="TE.LocalSystem.Msi\MsiException.cs" />
     <Compile Include="TE.LocalSystem\classes\exceptions\WindowsUserSidNotFound.cs" />
     <Compile Include="TE.LocalSystem\classes\WinApi.cs" />
+    <Compile Include="TE.Plex.Update\classes\CurrentVersion.cs" />
+    <Compile Include="TE.Plex.Update\classes\LatestAvailableVersion.cs" />
+    <Compile Include="TE.Plex.Update\classes\Release.cs" />
+    <Compile Include="TE.Plex.Update\classes\SystemType.cs" />
     <Compile Include="TE.Plex\classes\exceptions\AppNotInstalledException.cs" />
     <Compile Include="TE.Plex\classes\exceptions\PlexDataFolderNotFoundException.cs" />
     <Compile Include="TE.Plex\classes\exceptions\ServiceNotInstalledException.cs" />

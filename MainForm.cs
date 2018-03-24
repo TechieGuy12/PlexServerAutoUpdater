@@ -39,6 +39,7 @@ namespace TE.Plex
         public MainForm()
         {
             ToBeClosed = false;
+            cts = new CancellationTokenSource();
 
             InitializeComponent();
             Initialize();
@@ -92,6 +93,11 @@ namespace TE.Plex
                 btnCancel.Visible = false;
                 btnExit.Enabled = false;
 
+                if (cts == null)
+                {
+                    cts = new CancellationTokenSource();
+                }
+
                 CancellationToken ct = cts.Token;
 
                 Task plexUpdate = Task.Factory.StartNew(() =>
@@ -101,7 +107,7 @@ namespace TE.Plex
 
                     server.Update();
                 }, cts.Token);
-                
+
                 plexUpdate.Wait();
             }
             catch (Exception ex)
@@ -111,6 +117,11 @@ namespace TE.Plex
             }
             finally
             {
+                if (cts != null)
+                {
+                    cts.Dispose();
+                }
+
                 Initialize();
             }
         }
@@ -180,12 +191,12 @@ namespace TE.Plex
                     btnUpdate.Visible = true;
                     btnCancel.Visible = false;
                     btnExit.Enabled = true;
-                }
+            }
                 else
                 {
-                    btnUpdate.Visible = false;
-                    btnCancel.Visible = false;
-                    btnExit.Enabled = true;
+                btnUpdate.Visible = false;
+                btnCancel.Visible = false;
+                btnExit.Enabled = true;
                 }
             }
             catch (LocalSystem.Msi.MSIException ex)

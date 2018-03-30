@@ -4,7 +4,8 @@ The Plex Server Auto Updater application allows the Plex Media server to be upda
 
 ## What does it do?
 When the Plex Server Auto Updater performs an update, the following tasks are done:
-  
+
+- Downloads and verifies the latest update.  
 - Stops the Plex service.
 - Stops any Plex processes that are running.
 - Installs the latest update.

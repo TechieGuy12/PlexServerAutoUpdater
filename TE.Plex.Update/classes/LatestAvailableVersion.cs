@@ -124,6 +124,11 @@ namespace TE.Plex.Update
                 return null;
             }
 
+            if (!File.Exists(filePath))
+            {
+                return null;
+            }
+
             using (SHA1 sha = SHA1.Create())
             {
                 try
@@ -131,7 +136,13 @@ namespace TE.Plex.Update
                     using (var stream = File.OpenRead(filePath))
                     {
                         byte[] hash = sha.ComputeHash(stream);
-                        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+
+                        if (hash == null || hash.Length == 0)
+                        {
+                            return null;
+                        }
+
+                        return BitConverter.ToString(hash).Replace("-", "").ToLower();
                     }
                 }
                 catch
@@ -157,7 +168,7 @@ namespace TE.Plex.Update
                     null);
             }
             catch (Exception ex)
-                when (ex is IOException || ex is System.Security.SecurityException)
+                when (ex is IOException || ex is System.Security.SecurityException || ex is ArgumentException)
             {
                 return null;
             }
@@ -232,7 +243,10 @@ namespace TE.Plex.Update
         /// <summary>
         /// Gets the download package local path.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>
+        /// The downloaded package local path or null if the path could not
+        /// be determined.
+        /// </returns>
         private string GetPackagePath()
         {
             try
@@ -247,6 +261,11 @@ namespace TE.Plex.Update
                     _plexUserRegistryKey,
                     "LocalAppDataPath",
                     null);
+
+                if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(appPath))
+                {
+                    return null;
+                }
 
                 return Path.Combine(appPath, $@"Plex Media Server\Updates\{version}\packages");
             }
@@ -564,6 +583,12 @@ namespace TE.Plex.Update
             // Get the local path for the latest install and verify the folder
             // exists            
             string folder = GetPackagePath();
+            if (string.IsNullOrEmpty(folder))
+            {
+                OnMessageChanged("The package folder could not be determined.");
+                return false;
+            }
+
             if (!Directory.Exists(folder))
             {
                 OnMessageChanged(

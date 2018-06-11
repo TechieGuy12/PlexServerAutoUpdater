@@ -117,11 +117,7 @@ namespace TE.Plex
             }
             finally
             {
-                if (cts != null)
-                {
-                    cts.Dispose();
-                }
-
+                cts?.Dispose();
                 Initialize();
             }
         }
@@ -180,8 +176,7 @@ namespace TE.Plex
                     return;
                 }
 
-                server.UpdateMessage +=
-                    new MediaServer.UpdateMessageHandler(ServerUpdateMessage);
+                server.UpdateMessage += ServerUpdateMessage;
 
                 lblInstalledVersion.Text = server.CurrentVersion.ToString();
                 lblLatestVersion.Text = server.LatestVersion.ToString();

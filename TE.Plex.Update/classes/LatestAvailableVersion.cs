@@ -170,6 +170,7 @@ namespace TE.Plex.Update
             catch (Exception ex)
                 when (ex is IOException || ex is System.Security.SecurityException || ex is ArgumentException)
             {
+                OnMessageChanged($"ERROR: The Plex token could not be retrieved from the registry. Reason: {ex.Message}");
                 return null;
             }
 
@@ -190,17 +191,20 @@ namespace TE.Plex.Update
 
             if (LatestWindowsVersion.Releases.Count == 0)
             {
+                OnMessageChanged("WARN: There were no releases specified from Plex for Windows.");
                 return null;
             }
 
             if (LatestWindowsVersion.Releases[0] == null)
             {
+                OnMessageChanged("WARN: There were no releases specified from Plex for Windows.");
                 return null;
             }
 
             string url = LatestWindowsVersion.Releases[0].Url;
             if (string.IsNullOrEmpty(url))
             {
+                OnMessageChanged("WARN: The URL for the Windows release was not specified.");
                 return null;
             }
 
@@ -264,6 +268,7 @@ namespace TE.Plex.Update
 
                 if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(appPath))
                 {
+                    OnMessageChanged($"The registry value from '{_plexUserRegistryKey}\\LocalAppDataPath' could not be retrieved. Verify that the registry value exists.");
                     return null;
                 }
 
@@ -272,6 +277,7 @@ namespace TE.Plex.Update
             catch (Exception ex)
                 when (ex is IOException || ex is System.Security.SecurityException)
             {
+                OnMessageChanged($"The registry value from '{_plexUserRegistryKey}\\LocalAppDataPath' could not be retrieved. Reason: {ex.Message}");
                 return null;
             }
         }
@@ -281,8 +287,8 @@ namespace TE.Plex.Update
         /// on the Plex server.
         /// </summary>
         /// <returns>
-        /// The URL for the specified update channel package, or null if the
-        /// URL could not be determined.
+        /// The URL for the specified update channel package, or the public URL
+        /// if the URL could not be determined.
         /// </returns>
         private string GetPackageUrl()
         {
@@ -297,26 +303,31 @@ namespace TE.Plex.Update
             catch (Exception ex)
                 when (ex is System.Security.SecurityException || ex is IOException)
             {
-                return null;
+                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' could not be retrieved. Reason: {ex.Message}");
+                return PlexPackageJsonUrl;
             }
 
             if (value == null)
             {
-                return null;
+                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' could not be retrieved. Defaulting to the Public Plex update.");
+                return PlexPackageJsonUrl;
             }
 
             int updateChannel;
             if (!int.TryParse(value, out updateChannel))
             {
-                return null;
+                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' needs to be an numeric value, and it was '{value}' instead. Defaulting to the Public Plex update");
+                return PlexPackageJsonUrl;
             }
 
             if (updateChannel == (int)PackageType.PlexPass)
             {
+                OnMessageChanged("The update channel is set for Plex Pass.");
                 return PlexPackageJsonUrl + PlexPackageJsonUrlBeta;
             }
             else
             {
+                OnMessageChanged("The update channel is set for public.");
                 return PlexPackageJsonUrl;
             }
         }
@@ -353,7 +364,6 @@ namespace TE.Plex.Update
 
                 using (HttpResponseMessage response = _client.GetAsync(url).Result)
                 {
-
                     content = response.Content.ReadAsStringAsync().Result;
                 }
 
@@ -362,6 +372,14 @@ namespace TE.Plex.Update
             catch (HttpRequestException ex)
             {
                 OnMessageChanged($"Could not get Plex package information. Message: {ex.Message}.");
+                return null;
+            }
+            catch (AggregateException ae)
+            {
+                foreach (var e in ae.Flatten().InnerExceptions)
+                {
+                    OnMessageChanged($"Could not get Plex package information. Message: {e.Message}.");                    
+                }
                 return null;
             }
         }
@@ -385,7 +403,6 @@ namespace TE.Plex.Update
                 JsonConvert.DeserializeObject<CurrentVersion>(json);
 
             LatestWindowsVersion = versions.Computer["Windows"];
-
             if (LatestWindowsVersion == null)
             {
                 OnMessageChanged("Could not get the latest version information from Plex.");

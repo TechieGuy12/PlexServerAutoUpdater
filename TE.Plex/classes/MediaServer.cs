@@ -310,7 +310,7 @@ namespace TE.Plex
 
             LatestAvailableVersion availableVersion = new LatestAvailableVersion(
                 $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
-            availableVersion.MessageChanged += new MessageChangedEventHandler(Message_Changed);
+            availableVersion.MessageChanged += Message_Changed;
 
             if (availableVersion != null)
             {
@@ -561,14 +561,7 @@ namespace TE.Plex
 
             // Populate a service object with information about the Plex
             // service
-            try
-            {
-                plexService = new ServerService();
-            }
-            catch
-            {
-                throw;
-            }
+            plexService = new ServerService();
 
             if (plexService == null)
             {
@@ -656,14 +649,16 @@ namespace TE.Plex
                 // Use the nuclear way of killing the processes
                 foreach (Process proc in processes)
                 {
-                    Process process = new Process();
-                    process.StartInfo = new ProcessStartInfo
+                    using (Process process = new Process())
                     {
-                        FileName = "taskkill.exe",
-                        Arguments = $" /IM {processName} /F"
-                    };
-                    process.Start();
-                    process.WaitForExit();
+                        process.StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "taskkill.exe",
+                            Arguments = $" /IM {processName} /F"
+                        };
+                        process.Start();
+                        process.WaitForExit();
+                    }
                 }
             }
         }
@@ -691,16 +686,8 @@ namespace TE.Plex
                 {
                     Directory.CreateDirectory(installLogFolder);
                 }
-                catch (IOException)
-                {
-
-                    installLogFolder = Path.GetTempPath();
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    installLogFolder = Path.GetTempPath();
-                }
-                catch (NotSupportedException)
+                catch (Exception ex)
+                    when (ex is IOException || ex is UnauthorizedAccessException || ex is NotSupportedException)
                 {
                     installLogFolder = Path.GetTempPath();
                 }

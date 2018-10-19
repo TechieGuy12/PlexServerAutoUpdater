@@ -27,7 +27,7 @@ The Plex Server Auto Updater can be run silently from any commandline using the 
 
     psupdate.exe -silent
 
-The easiest way to keep Plex Media Server updated is to schedule the Plex Server Auto Updater from the Windows task scheduler. You can find information about how to do this from the [How to Update Plex Automatically When Run as a Service] post on [Technically Easy] oe [Updating Plex When Plex is Running as a Windows Service] on [Plexopedia].
+The easiest way to keep Plex Media Server updated is to schedule the Plex Server Auto Updater from the Windows task scheduler. You can find information about how to do this from the [How to Update Plex Automatically When Run as a Service] post on [Technically Easy] or [Updating Plex When Plex is Running as a Windows Service] on [Plexopedia].
 
 Of course, you can use any scheduling application with Plex Server Auto Updater by running the psupdate.exe with the -silent argument.
 

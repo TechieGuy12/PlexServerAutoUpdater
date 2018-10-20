@@ -181,6 +181,15 @@ namespace TE.Plex
                 lblInstalledVersion.Text = server.CurrentVersion.ToString();
                 lblLatestVersion.Text = server.LatestVersion.ToString();
 
+                if (server.PlayCount >= 0)
+                {
+                    lblPlayCount.Text = server.PlayCount.ToString();
+                }
+                else
+                {
+                    lblPlayCount.Text = "Unknown";
+                }
+
                 if (server.LatestVersion > server.CurrentVersion)
                 {
                     btnUpdate.Visible = true;
@@ -189,9 +198,9 @@ namespace TE.Plex
             }
                 else
                 {
-                btnUpdate.Visible = false;
-                btnCancel.Visible = false;
-                btnExit.Enabled = true;
+                    btnUpdate.Visible = false;
+                    btnCancel.Visible = false;
+                    btnExit.Enabled = true;
                 }
             }
             catch (LocalSystem.Msi.MSIException ex)

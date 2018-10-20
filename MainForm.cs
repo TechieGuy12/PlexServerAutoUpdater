@@ -4,6 +4,7 @@ using System.Drawing;
 using static System.Environment;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows.Forms;
 
 namespace TE.Plex
@@ -17,12 +18,17 @@ namespace TE.Plex
         /// <summary>
         /// The media server object.
         /// </summary>
-        private MediaServer server = null;
+        private MediaServer _server = null;
 
         /// <summary>
         /// The cancellation token source.
         /// </summary>
-        private CancellationTokenSource cts = null;
+        private CancellationTokenSource _cts = null;
+
+        /// <summary>
+        /// The wait timer.
+        /// </summary>
+        private System.Timers.Timer _timer = null;
         #endregion
 
         #region Properties
@@ -38,9 +44,6 @@ namespace TE.Plex
         /// </summary>
         public MainForm()
         {
-            ToBeClosed = false;
-            cts = new CancellationTokenSource();
-
             InitializeComponent();
             Initialize();
         }
@@ -58,7 +61,7 @@ namespace TE.Plex
         /// </param>
         void BtnCancelClick(object sender, EventArgs e)
         {
-            cts?.Cancel();
+            _cts?.Cancel();
         }
 
         /// <summary>
@@ -87,38 +90,29 @@ namespace TE.Plex
         /// </param>
         void BtnUpdateClick(object sender, EventArgs e)
         {
-            try
+            if (CheckIfCanUpdate())
             {
-                btnUpdate.Enabled = false;
-                btnCancel.Visible = false;
-                btnExit.Enabled = false;
+                PerformUpdate();
+            }            
+        }
 
-                if (cts == null)
-                {
-                    cts = new CancellationTokenSource();
-                }
-
-                CancellationToken ct = cts.Token;
-
-                Task plexUpdate = Task.Factory.StartNew(() =>
-                {
-                    // Throw an exception if already cancelled
-                    ct.ThrowIfCancellationRequested();
-
-                    server.Update();
-                }, cts.Token);
-
-                plexUpdate.Wait();
-            }
-            catch (Exception ex)
+        /// <summary>
+        /// Enables or disables the controls and timers on the form.
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// Event-related arguments.
+        /// </param>
+        private void chkWait_CheckedChanged(object sender, EventArgs e)
+        {
+            lblCheckEveryLabel.Enabled = chkWait.Checked;
+            lblCheckSecondsLabel.Enabled = chkWait.Checked;
+            numSeconds.Enabled = chkWait.Checked;
+            if (_timer != null)
             {
-                txtUpdateStatus.Text += $"ERROR: {ex.Message}{NewLine}";
-                Log.Write(ex);
-            }
-            finally
-            {
-                cts?.Dispose();
-                Initialize();
+                _timer.Enabled = chkWait.Checked;
             }
         }
 
@@ -155,9 +149,93 @@ namespace TE.Plex
             txtUpdateStatus.Text += $"{message}{NewLine}";
             Log.Write(message);
         }
+
+        /// <summary>
+        /// The timer has elapsed so check the play count to see if the server
+        /// is in use.
+        /// </summary>
+        /// <param name="source">
+        /// The sender.
+        /// </param>
+        /// <param name="e"
+        /// Elapsed event arguments.
+        /// ></param>
+        private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        {
+            if (_server == null)
+            {
+                _timer.Enabled = false;
+                return;
+            }
+
+            if (CheckIfCanUpdate())
+            {
+                PerformUpdate();
+            }
+        }
         #endregion
 
         #region Private Functions
+        /// <summary>
+        /// Checks to see if the server can be updated at this time.
+        /// </summary>
+        private bool CheckIfCanUpdate()
+        {
+            if (_server == null)
+            {
+                txtUpdateStatus.Text += "The server was not specified. Cannot perform the update.";
+                Log.Write("The server was not specified. Cannot perform the update.");
+                _timer.Enabled = false;
+                return false;
+            }
+
+            int playCount = _server.GetPlayCount();
+
+            // No item is currently being played
+            if (playCount == 0)
+            {
+                txtUpdateStatus.Text += "The server is not in use continuing to perform the update.";
+                Log.Write("The server is not in use continuing to perform the update.");
+                lblPlayCount.Text = _server.PlayCount.ToString();
+                btnUpdate.Enabled = true;
+                _timer.Enabled = false;
+                return true;
+            }
+            // At least one item is being played
+            else if (playCount > 0)
+            {
+                lblPlayCount.Text = _server.PlayCount.ToString();
+                if (chkWait.Checked)
+                {
+                    txtUpdateStatus.Text += "Waiting for the server to be free has not been enabled. Server update can begin.";
+                    Log.Write("The server is in use. Waiting for all media to be stopped before performing the update.");
+                    btnUpdate.Enabled = false;
+                    _timer.Interval =
+                        Convert.ToDouble(Math.Abs(numSeconds.Value) * 1000);
+                    _timer.Enabled = true;
+                    return false;
+                }
+                else
+                {
+                    txtUpdateStatus.Text += "The wait option has been disabled. You can go ahead and update the server.";
+                    Log.Write("The wait option has been disabled.You can go ahead and update the server.");
+                    btnUpdate.Enabled = true;
+                    _timer.Enabled = false;
+                    return true;
+                }
+            }
+            // Could not determine how many items are being played
+            else
+            {
+                txtUpdateStatus.Text += "The server in use status could not be determined. The server can be updated if you wish.";
+                Log.Write("The server in use status could not be determined. The server can be updated if you wish.");
+                lblPlayCount.Text = "Unknown";
+                btnUpdate.Enabled = true;
+                _timer.Enabled = false;
+                return true;
+            }
+        }
+
         /// <summary>
         /// Initializes the values on the form.
         /// </summary>
@@ -165,10 +243,19 @@ namespace TE.Plex
         {
             try
             {
-                Log.Write("Initializing the Plex media server object.");
-                server = new MediaServer();
+                ToBeClosed = false;
+                _cts = new CancellationTokenSource();
 
-                if (server == null)
+                Log.Write("Initializing the timer object.");
+                _timer = new System.Timers.Timer();
+                _timer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+                _timer.Enabled = false;
+                _timer.Interval = Convert.ToDouble(numSeconds.Value * 1000);
+
+                Log.Write("Initializing the Plex media server object.");
+                _server = new MediaServer();
+
+                if (_server == null)
                 {
                     Log.Write(
                         "The Plex media server object could not be initialized. Setting the flag to close the application.");
@@ -176,32 +263,32 @@ namespace TE.Plex
                     return;
                 }
 
-                server.UpdateMessage += ServerUpdateMessage;
+                _server.UpdateMessage += ServerUpdateMessage;
 
-                lblInstalledVersion.Text = server.CurrentVersion.ToString();
-                lblLatestVersion.Text = server.LatestVersion.ToString();
-
-                if (server.PlayCount >= 0)
-                {
-                    lblPlayCount.Text = server.PlayCount.ToString();
-                }
-                else
-                {
-                    lblPlayCount.Text = "Unknown";
-                }
-
-                if (server.LatestVersion > server.CurrentVersion)
+                lblInstalledVersion.Text = _server.CurrentVersion.ToString();
+                lblLatestVersion.Text = _server.LatestVersion.ToString();
+               
+                if (_server.LatestVersion > _server.CurrentVersion)
                 {
                     btnUpdate.Visible = true;
                     btnCancel.Visible = false;
                     btnExit.Enabled = true;
-            }
+                    CheckIfCanUpdate();
+                }
                 else
                 {
                     btnUpdate.Visible = false;
                     btnCancel.Visible = false;
                     btnExit.Enabled = true;
-                }
+                    if (_server.GetPlayCount() >= 0)
+                    {
+                        lblPlayCount.Text = _server.PlayCount.ToString();
+                    }
+                    else
+                    {
+                        lblPlayCount.Text = "Unknown";
+                    }
+                }                
             }
             catch (LocalSystem.Msi.MSIException ex)
             {
@@ -266,6 +353,48 @@ namespace TE.Plex
                 ToBeClosed = true;
             }
         }
+
+        /// <summary>
+        /// Perform the server update.
+        /// </summary>
+        private void PerformUpdate()
+        {
+            try
+            {
+                btnUpdate.Enabled = false;
+                btnCancel.Visible = false;
+                btnExit.Enabled = false;
+
+                if (_cts == null)
+                {
+                    _cts = new CancellationTokenSource();
+                }
+
+                CancellationToken ct = _cts.Token;
+
+                Task plexUpdate = Task.Factory.StartNew(() =>
+                {
+                    // Throw an exception if already cancelled
+                    ct.ThrowIfCancellationRequested();
+
+                    _server.Update();
+                }, _cts.Token);
+
+                plexUpdate.Wait();
+            }
+            catch (Exception ex)
+            {
+                txtUpdateStatus.Text += $"ERROR: {ex.Message}{NewLine}";
+                Log.Write(ex);
+            }
+            finally
+            {
+                _cts?.Dispose();
+                Initialize();
+            }
+        }
         #endregion
+
+
     }
 }

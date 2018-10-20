@@ -463,33 +463,6 @@ namespace TE.Plex
         }
 
         /// <summary>
-        /// Gets the current play count on the Plex server.
-        /// </summary>
-        /// <returns>
-        /// The current play count or -1 if the count could not be determined.
-        /// </returns>
-        private int GetPlayCount()
-        {
-            int playCount = Api.Unknown;
-            string token = GetToken(
-                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
-
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                Log.Write("The token could not be found.");
-                return playCount;
-            }
-
-            Api plexApi = new Api("localhost", token);
-            plexApi.MessageChanged += Message_Changed;
-
-            playCount = plexApi.GetPlayCount();
-            OnPlayCountChanged(playCount);
-
-            return playCount;
-        }
-
-        /// <summary>
         /// Gets the version number of a file.
         /// </summary>
         /// <param name="filePath">
@@ -775,6 +748,33 @@ namespace TE.Plex
                 PlexInstallLogFolder);
 
             return Path.Combine(logFolder, PlexMessageLogFile);
+        }
+
+        /// <summary>
+        /// Gets the current play count on the Plex server.
+        /// </summary>
+        /// <returns>
+        /// The current play count or -1 if the count could not be determined.
+        /// </returns>
+        public int GetPlayCount()
+        {
+            int playCount = Api.Unknown;
+            string token = GetToken(
+                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Log.Write("The token could not be found.");
+                return playCount;
+            }
+
+            Api plexApi = new Api("localhost", token);
+            plexApi.MessageChanged += Message_Changed;
+
+            playCount = plexApi.GetPlayCount();
+            OnPlayCountChanged(playCount);
+
+            return playCount;
         }
 
         /// <summary>

@@ -12,25 +12,25 @@ using Newtonsoft.Json;
 
 namespace TE.Plex.Update
 {
-    #region Event Delegates
-    /// <summary>
-    /// The delegate for the Message event handler.
-    /// </summary>
-    /// <param name="sender">
-    /// The object that triggered the event.
-    /// </param>
-    /// <param name="message">
-    /// The message.
-    /// </param>
-    public delegate void MessageChangedEventHandler(object sender, string messagee);
-    #endregion
-
     /// <summary>
     /// Properties and methods for downloading the latest version of the Plex
     /// Media Server for Windows.
     /// </summary>
     public class LatestAvailableVersion
     {
+        #region Event Delegates
+        /// <summary>
+        /// The delegate for the Message event handler.
+        /// </summary>
+        /// <param name="sender">
+        /// The object that triggered the event.
+        /// </param>
+        /// <param name="message">
+        /// The message.
+        /// </param>
+        public delegate void MessageChangedEventHandler(object sender, string messagee);
+        #endregion
+
         #region Events
         /// <summary>
         /// The MessageChanged event member.
@@ -150,30 +150,6 @@ namespace TE.Plex.Update
                     return null;
                 }
             }
-        }
-
-        /// <summary>
-        /// Gets the Plex token for the logged in Plex user.
-        /// </summary>
-        /// <returns>
-        /// A Plex token or null if the token could not be retrieved.
-        /// </returns>
-        private string GetToken()
-        {
-            try
-            {
-                return (string)Registry.GetValue(
-                    _plexUserRegistryKey,
-                    "PlexOnlineToken",
-                    null);
-            }
-            catch (Exception ex)
-                when (ex is IOException || ex is System.Security.SecurityException || ex is ArgumentException)
-            {
-                OnMessageChanged($"ERROR: The Plex token could not be retrieved from the registry. Reason: {ex.Message}");
-                return null;
-            }
-
         }
 
         /// <summary>
@@ -345,7 +321,7 @@ namespace TE.Plex.Update
             string content;
 
             // Get the Plex token for the Plex user
-            string token = GetToken();
+            string token = MediaServer.GetToken(_plexUserRegistryKey);
 
             if (token != null)
             {

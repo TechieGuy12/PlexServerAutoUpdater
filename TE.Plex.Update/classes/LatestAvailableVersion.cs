@@ -65,6 +65,13 @@ namespace TE.Plex.Update
 
         #region Private Constants
         /// <summary>
+        /// The public URL to the JSON data that contains information about the
+        /// latest Plex Media Server installs.
+        /// </summary>
+        private const string PlexPackagePublicJsonUrl =
+            "https://plex.tv/api/downloads/1.json";
+
+        /// <summary>
         /// The URL to the JSON data that contains information about the
         /// latest Plex Media Server installs.
         /// </summary>
@@ -286,14 +293,14 @@ namespace TE.Plex.Update
             if (value == null)
             {
                 OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' could not be retrieved. Defaulting to the Public Plex update.");
-                return PlexPackageJsonUrl;
+                return PlexPackagePublicJsonUrl;
             }
 
             int updateChannel;
             if (!int.TryParse(value, out updateChannel))
             {
                 OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' needs to be an numeric value, and it was '{value}' instead. Defaulting to the Public Plex update");
-                return PlexPackageJsonUrl;
+                return PlexPackagePublicJsonUrl;
             }
 
             if (updateChannel == (int)PackageType.PlexPass)
@@ -304,7 +311,7 @@ namespace TE.Plex.Update
             else
             {
                 OnMessageChanged("The update channel is set for public.");
-                return PlexPackageJsonUrl;
+                return PlexPackagePublicJsonUrl;
             }
         }
 

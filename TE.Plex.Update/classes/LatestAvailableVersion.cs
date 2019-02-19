@@ -69,7 +69,7 @@ namespace TE.Plex.Update
         /// latest Plex Media Server installs.
         /// </summary>
         private const string PlexPackageJsonUrl =
-            "https://plex.tv/api/downloads/1.json";
+            "https://plex.tv/api/downloads/5.json";
 
         /// <summary>
         /// The additional querystring to add to the URL to request the Plex

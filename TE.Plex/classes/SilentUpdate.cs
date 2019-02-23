@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using static System.Environment;
 using System.IO;
+using System.Timers;
 using TE.LocalSystem;
 
 namespace TE.Plex
@@ -11,25 +12,52 @@ namespace TE.Plex
     /// </summary>
     public class SilentUpdate
     {
+        #region Constants
+        /// <summary>
+        /// The default wait time in seconds.
+        /// </summary>
+        public const int DefaultWaitTime = 30;
+        #endregion
+
         #region Private Variables
         /// <summary>
         /// The media server object.
         /// </summary>
-        private MediaServer server = null;
+        private MediaServer _server = null;
+
         /// <summary>
         /// The log file that contains the messages regarding the update.
         /// </summary>
-        private string messageLogFile;
+        private string _messageLogFile;
+
         /// <summary>
         /// Flag indicating that there was an issue writing a message to the
         /// message log file.
         /// </summary>
-        private bool isMessageError;
+        private bool _isMessageError;
+
+        /// <summary>
+        /// The wait timer.
+        /// </summary>
+        private Timer _timer = null;
+        #endregion
+
+        #region Properties
+        /// <summary>
+        /// Gets or sets the flag indicating that the update is forced to be
+        /// installed regardless if any item is currently being played.
+        /// </summary>
+        public bool ForceUpdate { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the default wait time in seconds.
+        /// </summary>
+        public int WaitTime { get; set; } = DefaultWaitTime;
         #endregion
 
         #region Constructors
         /// <summary>
-        /// Initializes an instance of the <see cref="TE.Plex.SilentUpdate"/> class.
+        /// Initializes an instance of the <see cref="SilentUpdate"/> class.
         /// </summary>
         public SilentUpdate()
         {
@@ -52,20 +80,20 @@ namespace TE.Plex
         {
             // If an error occurred when writing an update message to the log
             // file, just return from the function without trying again
-            if (isMessageError)
+            if (_isMessageError)
             {
                 return;
             }
 
-            if (server != null)
+            if (_server != null)
             {
-                isMessageError = true;
+                _isMessageError = true;
                 Log.Write("There was an issue connecting to the media server.");
             }
 
-            if (!string.IsNullOrEmpty(messageLogFile))
+            if (!string.IsNullOrWhiteSpace(_messageLogFile))
             {
-                isMessageError = true;
+                _isMessageError = true;
                 Log.Write(
                     "The message log file was not specified. The installation log will still be written.");
             }
@@ -73,7 +101,7 @@ namespace TE.Plex
             try
             {
                 using (StreamWriter sw =
-                       new StreamWriter(messageLogFile, true))
+                       new StreamWriter(_messageLogFile, true))
                 {
                     sw.WriteLine(message);
                     Log.Write(message);
@@ -81,44 +109,116 @@ namespace TE.Plex
             }
             catch (UnauthorizedAccessException)
             {
-                isMessageError = true;
+                _isMessageError = true;
                 Log.Write(
-                    $"Access to the message log file is denied.{NewLine}Message log path: {messageLogFile}");
+                    $"Access to the message log file is denied.{NewLine}Message log path: {_messageLogFile}");
             }
             catch (DirectoryNotFoundException)
             {
-                isMessageError = true;
+                _isMessageError = true;
                 Log.Write(
-                    $"The message file directory could not be found.{NewLine}Message log path: {messageLogFile}");
+                    $"The message file directory could not be found.{NewLine}Message log path: {_messageLogFile}");
             }
             catch (PathTooLongException)
             {
-                isMessageError = true;
+                _isMessageError = true;
                 Log.Write(
-                    $"The message log path is too long. The total length of the path must be less than 260 characters.{NewLine}Message log path: {messageLogFile}");
+                    $"The message log path is too long. The total length of the path must be less than 260 characters.{NewLine}Message log path: {_messageLogFile}");
             }
             catch (IOException)
             {
-                isMessageError = true;
+                _isMessageError = true;
                 Log.Write(
-                    $"The message log path is invalid.{NewLine}Message log path: {messageLogFile}");
+                    $"The message log path is invalid.{NewLine}Message log path: {_messageLogFile}");
             }
             catch (System.Security.SecurityException)
             {
-                isMessageError = true;
+                _isMessageError = true;
                 Log.Write(
-                    $"The user does not have the required permissions to write to the message file.{NewLine}Message log path: {messageLogFile}");
+                    $"The user does not have the required permissions to write to the message file.{NewLine}Message log path: {_messageLogFile}");
             }
             catch (Exception ex)
             {
-                isMessageError = true;
+                _isMessageError = true;
                 Log.Write(
-                    $"An error occurred trying to write to the message log:{NewLine}{ex.Message}.{NewLine}Message log path: {messageLogFile}");
+                    $"An error occurred trying to write to the message log:{NewLine}{ex.Message}.{NewLine}Message log path: {_messageLogFile}");
+            }
+        }
+
+        /// <summary>
+        /// The timer has elapsed so check the play count to see if the server
+        /// is in use.
+        /// </summary>
+        /// <param name="source">
+        /// The sender.
+        /// </param>
+        /// <param name="e"
+        /// Elapsed event arguments.
+        /// ></param>
+        private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        {
+            if (_server == null)
+            {
+                _timer.Enabled = false;
+                return;
+            }
+
+            if (CheckIfCanUpdate())
+            {
+                PerformUpdate();
             }
         }
         #endregion
 
-        #region Private Functions		
+        #region Private Functions
+        /// <summary>
+        /// Checks to see if the server can be updated at this time.
+        /// </summary>
+        private bool CheckIfCanUpdate()
+        {
+            if (_server == null)
+            {
+                Log.Write("The server was not specified. Cannot perform the update.");
+                _timer.Enabled = false;
+                return false;
+            }
+
+            int playCount = _server.GetPlayCount();
+
+            // No item is currently being played
+            if (playCount == 0)
+            {
+                Log.Write("The server is not in use continuing to perform the update.");
+                _timer.Enabled = false;
+                return true;
+            }
+            // At least one item is being played
+            else if (playCount > 0)
+            {
+                if (!ForceUpdate)
+                {
+                    Log.Write("The server is in use. Waiting for all media to be stopped before performing the update.");
+                    _timer.Interval =
+                        Convert.ToDouble(Math.Abs(WaitTime) * 1000);
+                    _timer.Enabled = true;                    
+                    return false;
+                }
+                else
+                {
+                    Log.Write("The update is set to be force. The update will continue.");
+                    _timer.Enabled = false;
+                    return true;
+                }
+            }
+            // Could not determine how many items are being played
+            else
+            {
+                Log.Write("The server in use status could not be determined. The server can be updated if you wish.");
+                _timer.Enabled = false;
+                return true;
+            }
+        }
+
         /// <summary>
         /// Initializes the properties and variables for the class.
         /// </summary>
@@ -126,7 +226,7 @@ namespace TE.Plex
         {
             try
             {
-                server = new MediaServer(true);
+                _server = new MediaServer(true);
             }
             catch (AppNotInstalledException)
             {
@@ -151,54 +251,70 @@ namespace TE.Plex
                 return;
             }
 
-            server.UpdateMessage +=
+            _server.UpdateMessage +=
                 new MediaServer.UpdateMessageHandler(ServerUpdateMessage);
 
-            messageLogFile = server.GetMessageLogFilePath();
-            isMessageError = (messageLogFile.Length > 0);
+            _messageLogFile = _server.GetMessageLogFilePath();
+            _isMessageError = (_messageLogFile.Length > 0);
 
-            if (!string.IsNullOrEmpty(messageLogFile))
+            if (!string.IsNullOrWhiteSpace(_messageLogFile))
             {
                 // If the message log file exists, attempt to delete it
-                if (File.Exists(messageLogFile))
+                if (File.Exists(_messageLogFile))
                 {
                     try
                     {
-                        File.Delete(messageLogFile);
+                        File.Delete(_messageLogFile);
                     }
                     catch (PathTooLongException)
                     {
                         Log.Write(
-                            $"The message log file path is too long.{NewLine}Message log path: {messageLogFile}");
+                            $"The message log file path is too long.{NewLine}Message log path: {_messageLogFile}");
 
-                        isMessageError = false;
-                        messageLogFile = string.Empty;
+                        _isMessageError = false;
+                        _messageLogFile = string.Empty;
                     }
                     catch (IOException)
                     {
                         Log.Write(
-                            $"The message log file is in use. The messages won't be written to the log file but the installation log will still be written.{NewLine}Message log path: {messageLogFile}");
+                            $"The message log file is in use. The messages won't be written to the log file but the installation log will still be written.{NewLine}Message log path: {_messageLogFile}");
 
-                        isMessageError = false;
-                        messageLogFile = string.Empty;
+                        _isMessageError = false;
+                        _messageLogFile = string.Empty;
                     }
                     catch (NotSupportedException)
                     {
                         Log.Write(
-                            $"The message log path is invalid.{NewLine}Message log path: {messageLogFile}");
+                            $"The message log path is invalid.{NewLine}Message log path: {_messageLogFile}");
 
-                        isMessageError = false;
-                        messageLogFile = string.Empty;
+                        _isMessageError = false;
+                        _messageLogFile = string.Empty;
                     }
                     catch (UnauthorizedAccessException)
                     {
                         Log.Write(
-                            $"The message log path cannot be accessed.{NewLine}Message log path: {messageLogFile}");
+                            $"The message log path cannot be accessed.{NewLine}Message log path: {_messageLogFile}");
 
-                        isMessageError = false;
-                        messageLogFile = string.Empty;
+                        _isMessageError = false;
+                        _messageLogFile = string.Empty;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Perform the server update.
+        /// </summary>
+        private void PerformUpdate()
+        {
+            try
+            {
+                Log.Write("Update is available");
+                _server.Update();
+            }
+            catch (Exception ex)
+            {
+                Log.Write(ex);
             }
         }
         #endregion
@@ -212,10 +328,13 @@ namespace TE.Plex
             try
             {
                 Log.Write("Checking for server update.");
-                if (server.IsUpdateAvailable())
+                if (_server.IsUpdateAvailable())
                 {
-                    Log.Write("Update is available");
-                    server.Update();
+                    if (CheckIfCanUpdate())
+                    {
+                        Log.Write("Update is available");
+                        _server.Update();
+                    }
                 }
                 else
                 {

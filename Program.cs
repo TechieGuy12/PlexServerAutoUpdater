@@ -93,9 +93,22 @@ namespace TE.Plex
             {
                 try
                 {
+                    bool isForceUpdate = (arguments["force"] != null);
+
+                    int waitTime = SilentUpdate.DefaultWaitTime;
+                    if (arguments["wait"] != null)
+                    {
+                        if (!Int32.TryParse(arguments["wait"], out waitTime))
+                        {
+                            waitTime = SilentUpdate.DefaultWaitTime;
+                        }
+                    }
+
                     // Run the update silently
                     Log.Write("Initializing the silent update.");
                     SilentUpdate silentUpdate = new SilentUpdate();
+                    silentUpdate.ForceUpdate = isForceUpdate;
+                    silentUpdate.WaitTime = waitTime;
                     silentUpdate.Run();
                     Exit(ERROR_SUCCESS);
                 }

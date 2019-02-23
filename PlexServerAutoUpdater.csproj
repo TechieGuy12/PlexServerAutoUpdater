@@ -88,9 +88,11 @@
     <Compile Include="TE.Plex.Update\classes\LatestAvailableVersion.cs" />
     <Compile Include="TE.Plex.Update\classes\Release.cs" />
     <Compile Include="TE.Plex.Update\classes\SystemType.cs" />
+    <Compile Include="TE.Plex\classes\Api.cs" />
     <Compile Include="TE.Plex\classes\exceptions\AppNotInstalledException.cs" />
     <Compile Include="TE.Plex\classes\exceptions\PlexDataFolderNotFoundException.cs" />
     <Compile Include="TE.Plex\classes\exceptions\ServiceNotInstalledException.cs" />
+    <Compile Include="TE.Plex\classes\MediaContainer.cs" />
     <Compile Include="TE.Plex\classes\MediaServer.cs" />
     <Compile Include="TE.Plex\classes\ServerService.cs" />
     <Compile Include="TE.LocalSystem\classes\WindowsUser.cs" />

@@ -31,6 +31,16 @@ The easiest way to keep Plex Media Server updated is to schedule the Plex Server
 
 Of course, you can use any scheduling application with Plex Server Auto Updater by running the psupdate.exe with the -silent argument.
 
+## Waiting for streaming to complete
+By default, the updater will only update the Plex server if there is no client streaming media. If there is a client streaming from the Plex server, the update will wait until the server is free.
+
+You have a few options on how Plex is updated when media is streaming:
+
+1. Leave the default and the updater will wait and then check the server every 30 seconds to see if the streaming has completed before performing the update.
+2. From the GUI, uncheck the "Only update when not in use" checkbox, and then allow the update the go ahead regardless if Plex is streaming media.
+3. You can specify the "-wait [seconds]" argument to specify how many seconds the updater will wait to check to see if the streaming as completed.
+4. When running the update silently (using the -silent parameter), you can specify the -force parameter to force the update.
+
 [run as a Windows service]: https://forums.plex.tv/discussion/93994/pms-as-a-service/
 [latest release]: https://github.com/TechieGuy12/PlexServerAutoUpdater/releases/latest
 [How to Update Plex Automatically When Run as a Service]: http://technicallyeasy.net/2016/03/update-plex-automatically-running-plex-service/

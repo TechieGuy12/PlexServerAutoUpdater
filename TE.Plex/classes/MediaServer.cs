@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
-using TE.LocalSystem.Msi;
+using Msi = TE.LocalSystem.Msi;
 using TE.Plex.Update;
 
 namespace TE.Plex
@@ -23,6 +23,17 @@ namespace TE.Plex
         /// The message about the update.
         /// </param>
         public delegate void UpdateMessageHandler(object sender, string message);
+
+        /// <summary>
+        /// The delegate for the play count changed event.
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="playCount">
+        /// The last play count value.
+        /// </param>
+        public delegate void PlayCountChangedHandler(object sender, int playCount);
         #endregion
 
         #region Events
@@ -30,6 +41,11 @@ namespace TE.Plex
         /// Occurs whenever a message is created during the update.
         /// </summary>
         public event UpdateMessageHandler UpdateMessage;
+
+        /// <summary>
+        /// Occurs whenever the play count changes.
+        /// </summary>
+        public event PlayCountChangedHandler PlayCountChanged;
 
         /// <summary>
         /// Invoke the UpdateMessage event; called whenever a message is
@@ -41,6 +57,18 @@ namespace TE.Plex
         protected virtual void OnUpdateMessage(string message)
         {
             UpdateMessage?.Invoke(this, message);
+        }
+
+        /// <summary>
+        /// Invoke the PlayCountChanged event; called whenever the play count
+        /// changes.
+        /// </summary>
+        /// <param name="playCount">
+        /// The latest play count value;
+        /// </param>
+        protected virtual void OnPlayCountChanged(int playCount)
+        {
+            PlayCountChanged?.Invoke(this, playCount);
         }
         #endregion
 
@@ -147,6 +175,11 @@ namespace TE.Plex
         /// Gets or sets the flag indicating the installation is silent.
         /// </summary>
         public bool IsSilent { get; set; }
+
+        /// <summary>
+        /// Gets the current play count from the server.
+        /// </summary>
+        public int PlayCount { get; private set; }
         #endregion
 
         #region Constructors
@@ -490,7 +523,7 @@ namespace TE.Plex
         /// </exception>
         private string GetInstallPath()
         {
-            string installPath = Api.GetComponentPathByFile(PlexExecutable);
+            string installPath = Msi.Api.GetComponentPathByFile(PlexExecutable);
 
             if (!string.IsNullOrEmpty(installPath))
             {
@@ -582,6 +615,7 @@ namespace TE.Plex
                 Path.Combine(LocalDataFolder, PlexUpdatesFolder);
 
             GetVersions();
+            PlayCount = GetPlayCount();
         }
 
         /// <summary>
@@ -592,7 +626,7 @@ namespace TE.Plex
         /// </returns>
         private bool IsInstalled()
         {
-            return ((InstalledProduct.Enumerate()
+            return ((Msi.InstalledProduct.Enumerate()
                      .Where(product => product.DisplayName == DisplayName)).Any());
         }
 
@@ -714,6 +748,57 @@ namespace TE.Plex
                 PlexInstallLogFolder);
 
             return Path.Combine(logFolder, PlexMessageLogFile);
+        }
+
+        /// <summary>
+        /// Gets the current play count on the Plex server.
+        /// </summary>
+        /// <returns>
+        /// The current play count or -1 if the count could not be determined.
+        /// </returns>
+        public int GetPlayCount()
+        {
+            int playCount = Api.Unknown;
+            string token = GetToken(
+                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Log.Write("The token could not be found.");
+                return playCount;
+            }
+
+            Api plexApi = new Api("localhost", token);
+            plexApi.MessageChanged += Message_Changed;
+
+            playCount = plexApi.GetPlayCount();
+            OnPlayCountChanged(playCount);
+
+            return playCount;
+        }
+
+        /// <summary>
+        /// Gets the Plex token for the logged in Plex user.
+        /// </summary>
+        /// <returns>
+        /// A Plex token or null if the token could not be retrieved.
+        /// </returns>
+        public static string GetToken(string plexRegistryKey)
+        {
+            try
+            {
+                return (string)Registry.GetValue(
+                    plexRegistryKey,
+                    "PlexOnlineToken",
+                    null);
+            }
+            catch (Exception ex)
+                when (ex is IOException || ex is System.Security.SecurityException || ex is ArgumentException)
+            {
+                Log.Write($"ERROR: The Plex token could not be retrieved from the registry. Reason: {ex.Message}");
+                return null;
+            }
+
         }
 
         /// <summary>

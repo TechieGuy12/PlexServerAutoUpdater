@@ -227,6 +227,9 @@ namespace TE.Plex
             try
             {
                 _server = new MediaServer(true);
+                _timer = new Timer(DefaultWaitTime * 1000);
+                _timer.Elapsed += OnTimedEvent;
+                _timer.Enabled = false;                
             }
             catch (AppNotInstalledException)
             {

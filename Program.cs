@@ -36,7 +36,7 @@ namespace TE.Plex
         /// Program entry point.
         /// </summary>
         [STAThread]
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
             // redirect console output to parent process;
             // must be before any calls to Console.WriteLine()
@@ -70,7 +70,7 @@ namespace TE.Plex
 
                     Log.Write(message);
 
-                    Exit(ERROR_ACCESS_DENIED);
+                    return ERROR_ACCESS_DENIED;
                 }
             }
             catch (Exception ex)
@@ -86,7 +86,7 @@ namespace TE.Plex
 
                 Log.Write(ex);
 
-                Exit(-1);
+                return -1;
             }
 
             if (isSilent)
@@ -110,11 +110,12 @@ namespace TE.Plex
                     silentUpdate.ForceUpdate = isForceUpdate;
                     silentUpdate.WaitTime = waitTime;
                     silentUpdate.Run();
-                    Exit(ERROR_SUCCESS);
+
+                    return ERROR_SUCCESS;
                 }
                 catch
                 {
-                    Exit(-1);
+                    return -1;
                 }
             }
             else
@@ -135,6 +136,8 @@ namespace TE.Plex
                         Log.Write("Displaying the update window.");
                         Application.Run(mainForm);
                     }
+
+                    return ERROR_SUCCESS;
                 }
                 catch (Exception ex)
                 {
@@ -145,6 +148,8 @@ namespace TE.Plex
                         MessageBoxIcon.Stop);
 
                     Log.Write(ex);
+
+                    return -1;
                 }
             }
         }

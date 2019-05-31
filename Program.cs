@@ -56,19 +56,19 @@ namespace TE.Plex
                 // Check if the user running this application is an administrator
                 if (!user.IsAdministrator())
                 {
-                    if (!isSilent)
-                    {
-                        string message = "This application must be run from an administrative account.";
+                    string message = "This application must be run from an administrative account.";
 
+                    if (!isSilent)
+                    {                        
                         // If the user is not an administrator, then exit
                         MessageBox.Show(
                             message,
                             "Plex Server Updater",
                             MessageBoxButtons.OK,
-                            MessageBoxIcon.Stop);
-
-                        Log.Write(message);
+                            MessageBoxIcon.Stop);                        
                     }
+
+                    Log.Write(message);
 
                     Exit(ERROR_ACCESS_DENIED);
                 }
@@ -81,10 +81,10 @@ namespace TE.Plex
                         ex.Message,
                         "Plex Server Updater",
                         MessageBoxButtons.OK,
-                        MessageBoxIcon.Stop);
-
-                    Log.Write(ex);
+                        MessageBoxIcon.Stop);                    
                 }
+
+                Log.Write(ex);
 
                 Exit(-1);
             }

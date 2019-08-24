@@ -34,6 +34,17 @@ namespace TE.Plex
         /// The last play count value.
         /// </param>
         public delegate void PlayCountChangedHandler(object sender, int playCount);
+
+        /// <summary>
+        /// The delegate for the in progress recording count changed event.
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="inProgressRecordingCount">
+        /// The last in progress recording count value.
+        /// </param>
+        public delegate void InProgressRecordingCountChangedHandler(object sender, int inProgressRecordingCount);
         #endregion
 
         #region Events
@@ -46,6 +57,11 @@ namespace TE.Plex
         /// Occurs whenever the play count changes.
         /// </summary>
         public event PlayCountChangedHandler PlayCountChanged;
+
+        /// <summary>
+        /// Occurs whenever the in progress recording count changes.
+        /// </summary>
+        public event InProgressRecordingCountChangedHandler InProgressRecordingCountChanged;
 
         /// <summary>
         /// Invoke the UpdateMessage event; called whenever a message is
@@ -70,9 +86,20 @@ namespace TE.Plex
         {
             PlayCountChanged?.Invoke(this, playCount);
         }
+
+        /// <summary>
+        /// Invoke the InProgressRecordingCountChanged event; called whenever the in progress recording count changes.
+        /// </summary>
+        /// <param name="inProgressRecordingCount">
+        /// The latest in progress recording count value;
+        /// </param>
+        protected virtual void OnInProgressRecordingCountChanged(int inProgressRecordingCount)
+        {
+            InProgressRecordingCountChanged?.Invoke(this, inProgressRecordingCount);
+        }
         #endregion
 
-        #region Private Constants		
+        #region Private Constants
         /// <summary>
         /// The DisplayName of the Plex Media Server installation.
         /// </summary>
@@ -128,7 +155,7 @@ namespace TE.Plex
         private const int MaxPathSize = 256;
         #endregion
 
-        #region Private Variables	
+        #region Private Variables
         /// <summary>
         /// The SID of the Plex service user.
         /// </summary>
@@ -180,6 +207,11 @@ namespace TE.Plex
         /// Gets the current play count from the server.
         /// </summary>
         public int PlayCount { get; private set; }
+
+        /// <summary>
+        /// Gets the current in progress recording count from the server.
+        /// </summary>
+        public int InProgressRecordingCount { get; private set; }
         #endregion
 
         #region Constructors
@@ -195,7 +227,7 @@ namespace TE.Plex
         /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
         /// when provided with the value indicating if the install is to be
         /// silent.
-        /// </summary>		
+        /// </summary>
         public MediaServer(bool isSilent)
         {
             Initialize(isSilent);
@@ -549,7 +581,7 @@ namespace TE.Plex
                 GetVersionFromFile(
                     Path.Combine(InstallFolder, PlexExecutable)));
 
-            // Get the latest Plex Media Server version that has been 
+            // Get the latest Plex Media Server version that has been
             // downloaded
             LatestInstallPackage = GetLatestInstallPackage();
             if (!string.IsNullOrEmpty(LatestInstallPackage))
@@ -616,6 +648,7 @@ namespace TE.Plex
 
             GetVersions();
             PlayCount = GetPlayCount();
+            InProgressRecordingCount = GetInProgressRecordingCount();
         }
 
         /// <summary>
@@ -778,6 +811,33 @@ namespace TE.Plex
         }
 
         /// <summary>
+        /// Gets the number of in progress recordings (i.e. by the DVR) on the Plex server.
+        /// </summary>
+        /// <returns>
+        /// The current in progress recording count or -1 if the count could not be determined.
+        /// </returns>
+        public int GetInProgressRecordingCount()
+        {
+            int inProgressRecordingCount = Api.Unknown;
+            string token = GetToken(
+                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Log.Write("The token could not be found.");
+                return inProgressRecordingCount;
+            }
+
+            Api plexApi = new Api("localhost", token);
+            plexApi.MessageChanged += Message_Changed;
+
+            inProgressRecordingCount = plexApi.GetInProgressRecordingCount();
+            OnInProgressRecordingCountChanged(inProgressRecordingCount);
+
+            return inProgressRecordingCount;
+        }
+
+        /// <summary>
         /// Gets the Plex token for the logged in Plex user.
         /// </summary>
         /// <returns>
@@ -805,7 +865,7 @@ namespace TE.Plex
         /// Indicates if a new update is available.
         /// </summary>
         /// <returns>
-        /// True if an update is available, or false if there is no update 
+        /// True if an update is available, or false if there is no update
         /// available.
         /// </returns>
         public bool IsUpdateAvailable()

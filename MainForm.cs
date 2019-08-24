@@ -218,10 +218,20 @@ namespace TE.Plex
                     _timer.Enabled = true;
                     return false;
                 }
+                else if (!chkWait.Checked && inProgressRecordingCount > 0)
+                {
+                    txtUpdateStatus.Text += "The wait option has been disabled, but you cannot update the server while there is a recording in progress. Waiting for all in progress recordings to be stopped.";
+                    Log.Write("The server is in use. Waiting for all media and/or in progress recordings to be stopped before performing the update.");
+                    btnUpdate.Enabled = false;
+                    _timer.Interval =
+                        Convert.ToDouble(Math.Abs(numSeconds.Value) * 1000);
+                    _timer.Enabled = true;
+                    return false;
+                }
                 else
                 {
                     txtUpdateStatus.Text += "The wait option has been disabled. You can go ahead and update the server.";
-                    Log.Write("The wait option has been disabled.You can go ahead and update the server.");
+                    Log.Write("The wait option has been disabled. You can go ahead and update the server.");
                     btnUpdate.Enabled = true;
                     _timer.Enabled = false;
                     return true;

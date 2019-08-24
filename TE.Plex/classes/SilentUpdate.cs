@@ -204,6 +204,14 @@ namespace TE.Plex
                     _timer.Enabled = true;
                     return false;
                 }
+                else if (ForceUpdate && inProgressRecordingCount > 0)
+                {
+                    Log.Write("The server cannot be forcefully updated while there is a recording in progress.  Waiting for all in progress recordings to be stopped before performing the update.");
+                    _timer.Interval =
+                        Convert.ToDouble(Math.Abs(WaitTime) * 1000);
+                    _timer.Enabled = true;
+                    return false;
+                }
                 else
                 {
                     Log.Write("The update is set to be force. The update will continue.");

@@ -93,7 +93,7 @@ namespace TE.Plex
             if (CheckIfCanUpdate())
             {
                 PerformUpdate();
-            }            
+            }
         }
 
         /// <summary>
@@ -190,25 +190,28 @@ namespace TE.Plex
             }
 
             int playCount = _server.GetPlayCount();
+            int inProgressRecordingCount = _server.GetInProgressRecordingCount();
 
             // No item is currently being played
-            if (playCount == 0)
+            if (playCount == 0 && inProgressRecordingCount == 0)
             {
                 txtUpdateStatus.Text += "The server is not in use continuing to perform the update.";
                 Log.Write("The server is not in use continuing to perform the update.");
                 lblPlayCount.Text = _server.PlayCount.ToString();
+                lblInProgressRecordingCountLabel.Text = _server.InProgressRecordingCount.ToString();
                 btnUpdate.Enabled = true;
                 _timer.Enabled = false;
                 return true;
             }
             // At least one item is being played
-            else if (playCount > 0)
+            else if (playCount > 0 || inProgressRecordingCount > 0)
             {
                 lblPlayCount.Text = _server.PlayCount.ToString();
+                lblInProgressRecordingCountLabel.Text = _server.InProgressRecordingCount.ToString();
                 if (chkWait.Checked)
                 {
                     txtUpdateStatus.Text += "Waiting for the server to be free has not been enabled. Server update can begin.";
-                    Log.Write("The server is in use. Waiting for all media to be stopped before performing the update.");
+                    Log.Write("The server is in use. Waiting for all media and/or in progress recordings to be stopped before performing the update.");
                     btnUpdate.Enabled = false;
                     _timer.Interval =
                         Convert.ToDouble(Math.Abs(numSeconds.Value) * 1000);
@@ -230,6 +233,7 @@ namespace TE.Plex
                 txtUpdateStatus.Text += "The server in use status could not be determined. The server can be updated if you wish.";
                 Log.Write("The server in use status could not be determined. The server can be updated if you wish.");
                 lblPlayCount.Text = "Unknown";
+                lblInProgressRecordingCountLabel.Text = "Unknown";
                 btnUpdate.Enabled = true;
                 _timer.Enabled = false;
                 return true;
@@ -267,7 +271,7 @@ namespace TE.Plex
 
                 lblInstalledVersion.Text = _server.CurrentVersion.ToString();
                 lblLatestVersion.Text = _server.LatestVersion.ToString();
-               
+
                 if (_server.LatestVersion > _server.CurrentVersion)
                 {
                     btnUpdate.Visible = true;
@@ -280,15 +284,17 @@ namespace TE.Plex
                     btnUpdate.Visible = false;
                     btnCancel.Visible = false;
                     btnExit.Enabled = true;
-                    if (_server.GetPlayCount() >= 0)
+                    if (_server.GetPlayCount() >= 0 || _server.GetInProgressRecordingCount() >= 0)
                     {
                         lblPlayCount.Text = _server.PlayCount.ToString();
+                        lblInProgressRecordingCountLabel.Text = _server.InProgressRecordingCount.ToString();
                     }
                     else
                     {
                         lblPlayCount.Text = "Unknown";
+                        lblInProgressRecordingCountLabel.Text = "Unknown";
                     }
-                }                
+                }
             }
             catch (LocalSystem.Msi.MSIException ex)
             {

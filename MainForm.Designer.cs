@@ -61,6 +61,8 @@ namespace TE.Plex
             this.lblCheckEveryLabel = new System.Windows.Forms.Label();
             this.numSeconds = new System.Windows.Forms.NumericUpDown();
             this.lblCheckSecondsLabel = new System.Windows.Forms.Label();
+            this.lblInProgressRecordingCount = new System.Windows.Forms.Label();
+            this.lblInProgressRecordingCountLabel = new System.Windows.Forms.Label();
             this.grpUpdateStatus.SuspendLayout();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numSeconds)).BeginInit();
@@ -68,7 +70,7 @@ namespace TE.Plex
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(476, 429);
+            this.btnCancel.Location = new System.Drawing.Point(476, 448);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
             this.btnCancel.TabIndex = 1;
@@ -79,7 +81,7 @@ namespace TE.Plex
             // 
             // btnUpdate
             // 
-            this.btnUpdate.Location = new System.Drawing.Point(394, 429);
+            this.btnUpdate.Location = new System.Drawing.Point(394, 448);
             this.btnUpdate.Name = "btnUpdate";
             this.btnUpdate.Size = new System.Drawing.Size(75, 23);
             this.btnUpdate.TabIndex = 2;
@@ -90,7 +92,7 @@ namespace TE.Plex
             // grpUpdateStatus
             // 
             this.grpUpdateStatus.Controls.Add(this.txtUpdateStatus);
-            this.grpUpdateStatus.Location = new System.Drawing.Point(12, 117);
+            this.grpUpdateStatus.Location = new System.Drawing.Point(12, 136);
             this.grpUpdateStatus.Name = "grpUpdateStatus";
             this.grpUpdateStatus.Size = new System.Drawing.Size(538, 289);
             this.grpUpdateStatus.TabIndex = 3;
@@ -108,6 +110,8 @@ namespace TE.Plex
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.lblInProgressRecordingCount);
+            this.groupBox1.Controls.Add(this.lblInProgressRecordingCountLabel);
             this.groupBox1.Controls.Add(this.lblPlayCount);
             this.groupBox1.Controls.Add(this.lblPlayCountLabel);
             this.groupBox1.Controls.Add(this.lblLatestVersion);
@@ -116,7 +120,7 @@ namespace TE.Plex
             this.groupBox1.Controls.Add(this.lblInstalledVersionLabel);
             this.groupBox1.Location = new System.Drawing.Point(13, 13);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(537, 98);
+            this.groupBox1.Size = new System.Drawing.Size(537, 116);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Plex Media Server Information";
@@ -156,7 +160,7 @@ namespace TE.Plex
             // 
             // lblLatestVersionLabel
             // 
-            this.lblLatestVersionLabel.Location = new System.Drawing.Point(6, 43);
+            this.lblLatestVersionLabel.Location = new System.Drawing.Point(7, 43);
             this.lblLatestVersionLabel.Name = "lblLatestVersionLabel";
             this.lblLatestVersionLabel.Size = new System.Drawing.Size(100, 13);
             this.lblLatestVersionLabel.TabIndex = 1;
@@ -172,7 +176,7 @@ namespace TE.Plex
             // 
             // btnExit
             // 
-            this.btnExit.Location = new System.Drawing.Point(475, 429);
+            this.btnExit.Location = new System.Drawing.Point(475, 448);
             this.btnExit.Name = "btnExit";
             this.btnExit.Size = new System.Drawing.Size(75, 23);
             this.btnExit.TabIndex = 5;
@@ -185,7 +189,7 @@ namespace TE.Plex
             this.chkWait.AutoSize = true;
             this.chkWait.Checked = true;
             this.chkWait.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkWait.Location = new System.Drawing.Point(19, 412);
+            this.chkWait.Location = new System.Drawing.Point(19, 431);
             this.chkWait.Name = "chkWait";
             this.chkWait.Size = new System.Drawing.Size(161, 17);
             this.chkWait.TabIndex = 6;
@@ -196,7 +200,7 @@ namespace TE.Plex
             // lblCheckEveryLabel
             // 
             this.lblCheckEveryLabel.AutoSize = true;
-            this.lblCheckEveryLabel.Location = new System.Drawing.Point(16, 439);
+            this.lblCheckEveryLabel.Location = new System.Drawing.Point(16, 458);
             this.lblCheckEveryLabel.Name = "lblCheckEveryLabel";
             this.lblCheckEveryLabel.Size = new System.Drawing.Size(67, 13);
             this.lblCheckEveryLabel.TabIndex = 7;
@@ -204,7 +208,7 @@ namespace TE.Plex
             // 
             // numSeconds
             // 
-            this.numSeconds.Location = new System.Drawing.Point(89, 437);
+            this.numSeconds.Location = new System.Drawing.Point(89, 456);
             this.numSeconds.Maximum = new decimal(new int[] {
             3600,
             0,
@@ -227,17 +231,34 @@ namespace TE.Plex
             // lblCheckSecondsLabel
             // 
             this.lblCheckSecondsLabel.AutoSize = true;
-            this.lblCheckSecondsLabel.Location = new System.Drawing.Point(148, 439);
+            this.lblCheckSecondsLabel.Location = new System.Drawing.Point(148, 458);
             this.lblCheckSecondsLabel.Name = "lblCheckSecondsLabel";
             this.lblCheckSecondsLabel.Size = new System.Drawing.Size(47, 13);
             this.lblCheckSecondsLabel.TabIndex = 9;
             this.lblCheckSecondsLabel.Text = "seconds";
             // 
+            // lblInProgressRecordingCount
+            // 
+            this.lblInProgressRecordingCount.Location = new System.Drawing.Point(178, 89);
+            this.lblInProgressRecordingCount.Name = "lblInProgressRecordingCount";
+            this.lblInProgressRecordingCount.Size = new System.Drawing.Size(100, 17);
+            this.lblInProgressRecordingCount.TabIndex = 9;
+            this.lblInProgressRecordingCount.Text = "[]";
+            // 
+            // lblInProgressRecordingCountLabel
+            // 
+            this.lblInProgressRecordingCountLabel.AutoSize = true;
+            this.lblInProgressRecordingCountLabel.Location = new System.Drawing.Point(7, 89);
+            this.lblInProgressRecordingCountLabel.Name = "lblInProgressRecordingCountLabel";
+            this.lblInProgressRecordingCountLabel.Size = new System.Drawing.Size(165, 13);
+            this.lblInProgressRecordingCountLabel.TabIndex = 8;
+            this.lblInProgressRecordingCountLabel.Text = "Number of in progress recordings:";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(563, 472);
+            this.ClientSize = new System.Drawing.Size(563, 490);
             this.Controls.Add(this.lblCheckSecondsLabel);
             this.Controls.Add(this.numSeconds);
             this.Controls.Add(this.lblCheckEveryLabel);
@@ -272,5 +293,7 @@ namespace TE.Plex
         private System.Windows.Forms.Label lblCheckEveryLabel;
         private System.Windows.Forms.NumericUpDown numSeconds;
         private System.Windows.Forms.Label lblCheckSecondsLabel;
+        private System.Windows.Forms.Label lblInProgressRecordingCount;
+        private System.Windows.Forms.Label lblInProgressRecordingCountLabel;
     }
 }

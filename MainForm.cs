@@ -197,8 +197,8 @@ namespace TE.Plex
             {
                 txtUpdateStatus.Text += "The server is not in use continuing to perform the update.";
                 Log.Write("The server is not in use continuing to perform the update.");
-                lblPlayCount.Text = _server.PlayCount.ToString();
-                lblInProgressRecordingCount.Text = _server.InProgressRecordingCount.ToString();
+                lblPlayCount.Text = playCount.ToString();
+                lblInProgressRecordingCount.Text = inProgressRecordingCount.ToString();
                 btnUpdate.Enabled = true;
                 _timer.Enabled = false;
                 return true;
@@ -206,8 +206,8 @@ namespace TE.Plex
             // At least one item is being played
             else if (playCount > 0 || inProgressRecordingCount > 0)
             {
-                lblPlayCount.Text = _server.PlayCount.ToString();
-                lblInProgressRecordingCount.Text = _server.InProgressRecordingCount.ToString();
+                lblPlayCount.Text = playCount.ToString();
+                lblInProgressRecordingCount.Text = inProgressRecordingCount.ToString();
                 if (chkWait.Checked)
                 {
                     txtUpdateStatus.Text += "Waiting for the server to be free has been enabled. Server update can begin. Waiting for all media and/or in progress recordings to be stopped.";

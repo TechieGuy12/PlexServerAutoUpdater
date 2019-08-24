@@ -210,7 +210,7 @@ namespace TE.Plex
                 lblInProgressRecordingCountLabel.Text = _server.InProgressRecordingCount.ToString();
                 if (chkWait.Checked)
                 {
-                    txtUpdateStatus.Text += "Waiting for the server to be free has not been enabled. Server update can begin.";
+                    txtUpdateStatus.Text += "Waiting for the server to be free has been enabled. Server update can begin. Waiting for all media and/or in progress recordings to be stopped.";
                     Log.Write("The server is in use. Waiting for all media and/or in progress recordings to be stopped before performing the update.");
                     btnUpdate.Enabled = false;
                     _timer.Interval =

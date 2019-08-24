@@ -198,7 +198,7 @@ namespace TE.Plex
                 txtUpdateStatus.Text += "The server is not in use continuing to perform the update.";
                 Log.Write("The server is not in use continuing to perform the update.");
                 lblPlayCount.Text = _server.PlayCount.ToString();
-                lblInProgressRecordingCountLabel.Text = _server.InProgressRecordingCount.ToString();
+                lblInProgressRecordingCount.Text = _server.InProgressRecordingCount.ToString();
                 btnUpdate.Enabled = true;
                 _timer.Enabled = false;
                 return true;
@@ -207,7 +207,7 @@ namespace TE.Plex
             else if (playCount > 0 || inProgressRecordingCount > 0)
             {
                 lblPlayCount.Text = _server.PlayCount.ToString();
-                lblInProgressRecordingCountLabel.Text = _server.InProgressRecordingCount.ToString();
+                lblInProgressRecordingCount.Text = _server.InProgressRecordingCount.ToString();
                 if (chkWait.Checked)
                 {
                     txtUpdateStatus.Text += "Waiting for the server to be free has been enabled. Server update can begin. Waiting for all media and/or in progress recordings to be stopped.";
@@ -243,7 +243,7 @@ namespace TE.Plex
                 txtUpdateStatus.Text += "The server in use status could not be determined. The server can be updated if you wish.";
                 Log.Write("The server in use status could not be determined. The server can be updated if you wish.");
                 lblPlayCount.Text = "Unknown";
-                lblInProgressRecordingCountLabel.Text = "Unknown";
+                lblInProgressRecordingCount.Text = "Unknown";
                 btnUpdate.Enabled = true;
                 _timer.Enabled = false;
                 return true;
@@ -297,12 +297,12 @@ namespace TE.Plex
                     if (_server.GetPlayCount() >= 0 || _server.GetInProgressRecordingCount() >= 0)
                     {
                         lblPlayCount.Text = _server.PlayCount.ToString();
-                        lblInProgressRecordingCountLabel.Text = _server.InProgressRecordingCount.ToString();
+                        lblInProgressRecordingCount.Text = _server.InProgressRecordingCount.ToString();
                     }
                     else
                     {
                         lblPlayCount.Text = "Unknown";
-                        lblInProgressRecordingCountLabel.Text = "Unknown";
+                        lblInProgressRecordingCount.Text = "Unknown";
                     }
                 }
             }

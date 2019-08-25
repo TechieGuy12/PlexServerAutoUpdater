@@ -184,23 +184,32 @@ namespace TE.Plex
             }
 
             int playCount = _server.GetPlayCount();
+            int inProgressRecordingCount = _server.GetInProgressRecordingCount();
 
             // No item is currently being played
-            if (playCount == 0)
+            if (playCount == 0 && inProgressRecordingCount == 0)
             {
                 Log.Write("The server is not in use continuing to perform the update.");
                 _timer.Enabled = false;
                 return true;
             }
             // At least one item is being played
-            else if (playCount > 0)
+            else if (playCount > 0 || inProgressRecordingCount > 0)
             {
                 if (!ForceUpdate)
                 {
-                    Log.Write("The server is in use. Waiting for all media to be stopped before performing the update.");
+                    Log.Write("The server is in use. Waiting for all media and/or in progress recordings to be stopped before performing the update.");
                     _timer.Interval =
                         Convert.ToDouble(Math.Abs(WaitTime) * 1000);
-                    _timer.Enabled = true;                    
+                    _timer.Enabled = true;
+                    return false;
+                }
+                else if (ForceUpdate && inProgressRecordingCount > 0)
+                {
+                    Log.Write("The server cannot be forcefully updated while there is a recording in progress.  Waiting for all in progress recordings to be stopped before performing the update.");
+                    _timer.Interval =
+                        Convert.ToDouble(Math.Abs(WaitTime) * 1000);
+                    _timer.Enabled = true;
                     return false;
                 }
                 else
@@ -229,7 +238,7 @@ namespace TE.Plex
                 _server = new MediaServer(true);
                 _timer = new Timer(DefaultWaitTime * 1000);
                 _timer.Elapsed += OnTimedEvent;
-                _timer.Enabled = false;                
+                _timer.Enabled = false;
             }
             catch (AppNotInstalledException)
             {

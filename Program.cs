@@ -59,17 +59,18 @@ namespace TE.Plex
                     string message = "This application must be run from an administrative account.";
 
                     if (!isSilent)
-                    {                        
+                    {
                         // If the user is not an administrator, then exit
                         MessageBox.Show(
                             message,
                             "Plex Server Updater",
                             MessageBoxButtons.OK,
-                            MessageBoxIcon.Stop);                        
+                            MessageBoxIcon.Stop);
                     }
 
                     Log.Write(message);
 
+                    ExitCode = ERROR_ACCESS_DENIED;
                     return ERROR_ACCESS_DENIED;
                 }
             }
@@ -81,12 +82,13 @@ namespace TE.Plex
                         ex.Message,
                         "Plex Server Updater",
                         MessageBoxButtons.OK,
-                        MessageBoxIcon.Stop);                    
+                        MessageBoxIcon.Stop);
                 }
 
                 Log.Write(ex);
 
-                return -1;
+                ExitCode = 1;
+                return 1;
             }
 
             if (isSilent)
@@ -111,11 +113,13 @@ namespace TE.Plex
                     silentUpdate.WaitTime = waitTime;
                     silentUpdate.Run();
 
+                    ExitCode = ERROR_SUCCESS;
                     return ERROR_SUCCESS;
                 }
                 catch
                 {
-                    return -1;
+                    ExitCode = 1;
+                    return 1;
                 }
             }
             else
@@ -137,6 +141,7 @@ namespace TE.Plex
                         Application.Run(mainForm);
                     }
 
+                    ExitCode = ERROR_SUCCESS;
                     return ERROR_SUCCESS;
                 }
                 catch (Exception ex)
@@ -149,7 +154,8 @@ namespace TE.Plex
 
                     Log.Write(ex);
 
-                    return -1;
+                    ExitCode = 1;
+                    return 1;
                 }
             }
         }

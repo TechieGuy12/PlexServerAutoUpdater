@@ -41,6 +41,10 @@ You have a few options on how Plex is updated when media is streaming:
 3. You can specify the "-wait [seconds]" argument to specify how many seconds the updater will wait to check to see if the streaming as completed.
 4. When running the update silently (using the -silent parameter), you can specify the -force parameter to force the update.
 
+## Log File Location
+
+    %LOCALAPPDATA%\Temp\plex-updater.txt
+
 [run as a Windows service]: https://forums.plex.tv/discussion/93994/pms-as-a-service/
 [latest release]: https://github.com/TechieGuy12/PlexServerAutoUpdater/releases/latest
 [How to Update Plex Automatically When Run as a Service]: http://technicallyeasy.net/2016/03/update-plex-automatically-running-plex-service/

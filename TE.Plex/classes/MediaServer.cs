@@ -924,6 +924,9 @@ namespace TE.Plex
                 RunInstall();
                 OnUpdateMessage("END: Running update.");
 
+                OnUpdateMessage("START: Deleting Plex Run registry keys.");
+                DeleteRunKey();
+                OnUpdateMessage("END: Deleting Plex Run registry keys.");
                 GetVersions();
             }
             catch

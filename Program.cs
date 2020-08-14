@@ -113,8 +113,16 @@ namespace TE.Plex
                     silentUpdate.WaitTime = waitTime;
                     silentUpdate.Run();
 
-                    ExitCode = ERROR_SUCCESS;
-                    return ERROR_SUCCESS;
+                    if (silentUpdate.IsPlexRunning())
+                    {
+                        ExitCode = ERROR_SUCCESS;
+                        return ERROR_SUCCESS;
+                    }
+                    else
+                    {
+                        ExitCode = 1;
+                        return 1;
+                    }
                 }
                 catch
                 {

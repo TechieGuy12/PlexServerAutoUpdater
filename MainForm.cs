@@ -397,6 +397,11 @@ namespace TE.Plex
                 }, _cts.Token);
 
                 plexUpdate.Wait();
+
+                if (!_server.IsRunning())
+                {
+                    Log.Write("The Plex server was not started successfully.");
+                }
             }
             catch (Exception ex)
             {

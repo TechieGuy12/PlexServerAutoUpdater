@@ -333,6 +333,17 @@ namespace TE.Plex
 
         #region Public Functions
         /// <summary>
+        /// Gets the value indicating that the Plex server is running.
+        /// </summary>
+        /// <returns>
+        /// True if the Plex server is running, false if the server is not
+        /// running.
+        /// </returns>
+        public bool IsPlexRunning() 
+        {
+            return _server.IsRunning();
+        }
+        /// <summary>
         /// Runs the Plex Media Server update.
         /// </summary>
         public void Run()

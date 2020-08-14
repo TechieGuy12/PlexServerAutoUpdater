@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Msi = TE.LocalSystem.Msi;
 using TE.Plex.Update;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace TE.Plex
 {
@@ -160,10 +162,16 @@ namespace TE.Plex
         /// The SID of the Plex service user.
         /// </summary>
         private string serviceUserSid;
+
         /// <summary>
         /// The Plex service.
         /// </summary>
         private ServerService plexService = null;
+
+        /// <summary>
+        /// The HTTP client used to connect to the Plex website.
+        /// </summary>
+        private HttpClient httpClient = new HttpClient();
         #endregion
 
         #region Properties
@@ -662,7 +670,7 @@ namespace TE.Plex
             return ((Msi.InstalledProduct.Enumerate()
                      .Where(product => product.DisplayName == DisplayName)).Any());
         }
-
+       
         /// <summary>
         /// Run the Plex Media Server installation.
         /// </summary>
@@ -861,6 +869,27 @@ namespace TE.Plex
 
         }
 
+        /// <summary>
+        /// Gets the value indicating if the Plex server is running.
+        /// </summary>
+        /// <returns>
+        /// True if the Plex server is running, false if the Plex server is not
+        /// running.
+        /// </returns>
+        public bool IsRunning()
+        {
+            try
+            {
+                HttpResponseMessage checkingResponse = 
+                    httpClient.GetAsync("http://localhost:32400/web/index.html").GetAwaiter().GetResult();
+                return checkingResponse.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+                when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                return false;
+            }
+        }
         /// <summary>
         /// Indicates if a new update is available.
         /// </summary>

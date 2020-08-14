@@ -563,15 +563,38 @@ namespace TE.Plex
         /// </exception>
         private string GetInstallPath()
         {
-            string installPath = Msi.Api.GetComponentPathByFile(PlexExecutable);
+            string installPath = null;
 
-            if (!string.IsNullOrEmpty(installPath))
+            // To avoid using the Windows Installer API, let's first check well
+            // known paths to find the Plex install location
+            List<string> defaultLocations = new List<string>();
+            defaultLocations.Add(@"C:\Program Files (x86)\Plex\Plex Media Server");
+            defaultLocations.Add(@"C:\Program Files\Plex\Plex Media Server");
+
+            foreach (string location in defaultLocations)
             {
-                // Verify the path length does not exceed the allowable
-                // length of the operating system
-                if (installPath.Length < MaxPathSize)
+                string path = Path.Combine(location, PlexExecutable);
+                if (File.Exists(path))
                 {
-                    installPath = Path.GetDirectoryName(installPath);
+                    installPath = path;
+                    break;
+                }
+            }
+
+            // If the install path does not contain a value, then use the
+            // Windows Installer API to find the Plex server install path
+            if (string.IsNullOrWhiteSpace(installPath))
+            {
+                installPath = Msi.Api.GetComponentPathByFile(PlexExecutable);
+
+                if (!string.IsNullOrWhiteSpace(installPath))
+                {
+                    // Verify the path length does not exceed the allowable
+                    // length of the operating system
+                    if (installPath.Length < MaxPathSize)
+                    {
+                        installPath = Path.GetDirectoryName(installPath);
+                    }
                 }
             }
 

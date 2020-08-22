@@ -25,7 +25,13 @@ namespace TE.Plex
         /// The registry run key that starts Plex Media Server at Windows
         /// startup.
         /// </summary>
-        private const string RegistryRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run\Plex Media Server";
+        private const string RegistryRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
+        /// <summary>
+        /// The registry value that starts Plex Media Server at Windows 
+        /// startup.
+        /// </summary>
+        private const string RegistryRunValue = "Plex Media Server";
 
         /// <summary>
         /// The name of the local Plex data path registry value.
@@ -101,17 +107,34 @@ namespace TE.Plex
         /// Delete the Plex Server run keys for both the user that performed
         /// the installation, and the user associated with the Plex Service.
         /// </summary>
-        internal void DeleteRunKey()
+        /// <returns>
+        /// True if the registry value has been deleted, false if the value
+        /// could not be deleted.
+        /// </returns>
+        internal bool DeleteRunKey()
         {
-            // Delete the run keys from the registry for the current user
-            Win32.Registry.CurrentUser.DeleteSubKeyTree(RegistryRunKey);
-            if (!string.IsNullOrEmpty(user.Sid))
+            using (Win32.RegistryKey key = Win32.Registry.CurrentUser.OpenSubKey(RegistryRunKey, true))
             {
-                // Delete the run keys from the registry for the user
-                // associated with the Plex service
-                Win32.Registry.Users.DeleteSubKeyTree(
-                    $"{user.Sid}\\{RegistryRunKey}");
+                if (key != null)
+                {
+                    if (key.GetValue(RegistryRunValue) == null)
+                    {
+                        return true;
+                    }
+
+                    try
+                    {
+                        key.DeleteValue(RegistryRunValue);
+                        return (key.GetValue(RegistryRunValue) == null);                        
+                    }
+                    catch (ArgumentException)
+                    {
+                        return true;
+                    }
+                }
             }
+
+            return false;
         }
 
         /// <summary>

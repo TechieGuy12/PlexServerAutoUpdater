@@ -131,10 +131,6 @@ namespace TE.Plex
         /// </summary>
         private const string PlexInstallLogFile = "PlexMediaServerInstall.log";
         /// <summary>
-        /// Plex Media Server message log file name.
-        /// </summary>
-        private const string PlexMessageLogFile = "PlexMediaServerMessage.log";
-        /// <summary>
         /// Maxiumum path length.
         /// </summary>
         private const int MaxPathSize = 256;
@@ -221,11 +217,32 @@ namespace TE.Plex
 
         /// <summary>
         /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
+        /// when provided with the <see cref="UpdateMessageHandler"/>.
+        /// </summary>
+        public MediaServer(UpdateMessageHandler handler)
+        {
+            UpdateMessage += handler;
+            Initialize(false);
+        }
+
+        /// <summary>
+        /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
         /// when provided with the value indicating if the install is to be
         /// silent.
         /// </summary>
         public MediaServer(bool isSilent)
         {
+            Initialize(isSilent);
+        }
+
+        /// <summary>
+        /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
+        /// when provided with the value indicating if the install is to be
+        /// silent and the <see cref="UpdateMessageHandler"/>.
+        /// </summary>
+        public MediaServer(bool isSilent, UpdateMessageHandler handler)
+        {
+            UpdateMessage += handler;
             Initialize(isSilent);
         }
         #endregion
@@ -242,7 +259,7 @@ namespace TE.Plex
         /// </param>
         private void Message_Changed(object sender, string message)
         {
-            Log.Write(message);
+            OnUpdateMessage(message);
         }
         #endregion
 
@@ -319,7 +336,11 @@ namespace TE.Plex
         /// </returns>
         private string GetLatestInstallPackage()
         {
-            Log.Write($"Verify the updates folder is specified.");
+            if (UpdateMessage == null)
+            {
+                Log.Write("UpdateMessage is null.");
+            }
+            OnUpdateMessage($"Verify the updates folder is specified.");
             if (string.IsNullOrEmpty(UpdatesFolder))
             {
                 OnUpdateMessage(
@@ -330,8 +351,17 @@ namespace TE.Plex
             // Get the unique user SID for the Plex service user
             serviceUserSid = plexService.LogOnUser.Sid;
 
-            LatestAvailableVersion availableVersion = new LatestAvailableVersion(
+            string token = GetToken(
                 $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+            if (token == null)
+            {
+                OnUpdateMessage("Could not get the latest install package.");
+                return string.Empty;
+            }
+
+            LatestAvailableVersion availableVersion = new LatestAvailableVersion(
+                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}",
+                token);
             availableVersion.MessageChanged += Message_Changed;
 
             if (availableVersion != null)
@@ -339,11 +369,11 @@ namespace TE.Plex
                 bool result = availableVersion.Download().Result;
                 if (!result)
                 {
-                    Log.Write("The latest available installation could not be downloaded.");
+                    OnUpdateMessage("The latest available installation could not be downloaded.");
                 }
             }
 
-            Log.Write($"Verify the updates folder, {UpdatesFolder} exists.");
+            OnUpdateMessage($"Verify the updates folder, {UpdatesFolder} exists.");
             if (!Directory.Exists(UpdatesFolder))
             {
                 OnUpdateMessage(
@@ -351,25 +381,25 @@ namespace TE.Plex
                 return string.Empty;
             }
 
-            Log.Write("Checking to see if updates folder exists.");
+            OnUpdateMessage("Checking to see if updates folder exists.");
             if (!Directory.EnumerateFileSystemEntries(UpdatesFolder).Any())
             {
-                Log.Write("Updates folder does not exist. Looks like a new install.");
+                OnUpdateMessage("Updates folder does not exist. Looks like a new install.");
                 return string.Empty;
             }
 
-            Log.Write("Getting the latest update folder.");
+            OnUpdateMessage("Getting the latest update folder.");
             DirectoryInfo latestFolder =
                 new DirectoryInfo(UpdatesFolder).GetDirectories()
                     .OrderByDescending(d => d.LastWriteTimeUtc).FirstOrDefault();
 
             if (latestFolder == null)
             {
-                Log.Write("Couldn't get the latest update folder.");
+                OnUpdateMessage("Couldn't get the latest update folder.");
                 return string.Empty;
             }
 
-            Log.Write("Checking for the latest Plex packages folder.");
+            OnUpdateMessage("Checking for the latest Plex packages folder.");
             string packagesFullPath =
                 Path.Combine(latestFolder.FullName, PlexPackagesFolder);
 
@@ -382,18 +412,18 @@ namespace TE.Plex
 
             DirectoryInfo packagesFolder = new DirectoryInfo(packagesFullPath);
 
-            Log.Write("Get the latest packages file.");
+            OnUpdateMessage("Get the latest packages file.");
             FileInfo file = packagesFolder.GetFiles()
                 .OrderByDescending(f => f.LastWriteTime)
                 .FirstOrDefault();
 
             if (file == null)
             {
-                Log.Write("Couldn't get the latest packages file.");
+                OnUpdateMessage("Couldn't get the latest packages file.");
                 return string.Empty;
             }
 
-            Log.Write($"Latest packages file: {file.FullName}");
+            OnUpdateMessage($"Latest packages file: {file.FullName}");
             return file.FullName;
         }
 
@@ -594,8 +624,8 @@ namespace TE.Plex
         /// </summary>
         private void RunInstall()
         {
-            Log.Write("Starting Plex installation.");
-            Log.Write("Delete any previous installation logs.");
+            OnUpdateMessage("Starting Plex installation.");
+            OnUpdateMessage("Delete any previous installation logs.");
             string logFile = GetInstallLogFilePath();
             if (File.Exists(logFile))
             {
@@ -606,12 +636,12 @@ namespace TE.Plex
                 LatestInstallPackage,
                 PlexInstallParameters + logFile);
 
-            Log.Write("Run Plex installation.");
+            OnUpdateMessage("Run Plex installation.");
             using (Process install = Process.Start(startInfo))
             {
                 install.WaitForExit();
             }
-            Log.Write("Plex install has finished.");
+            OnUpdateMessage("Plex install has finished.");
         }
 
         /// <summary>
@@ -622,7 +652,7 @@ namespace TE.Plex
         /// </param>
         private void StopProcess(string processName)
         {
-            Log.Write($"Stopping {processName} processes.");
+            OnUpdateMessage($"Stopping {processName} processes.");
 
             // Drop the extension from the filename to get the process without
             // using the file extension
@@ -666,7 +696,7 @@ namespace TE.Plex
         /// </returns>
         public string GetInstallLogFilePath()
         {
-            Log.Write("Setting the installation log path.");
+            OnUpdateMessage("Setting the installation log path.");
             string logFolder = Environment.GetFolderPath(
                     Environment.SpecialFolder.CommonApplicationData);
 
@@ -687,26 +717,9 @@ namespace TE.Plex
             }
 
             string logPath = Path.Combine(installLogFolder, PlexInstallLogFile);
-            Log.Write($"Installation log path: {logPath}.");
+            OnUpdateMessage($"Installation log path: {logPath}.");
 
             return logPath;
-        }
-
-        /// <summary>
-        /// Gets the full path to the message log file.
-        /// </summary>
-        /// <returns>
-        /// The message log file path.
-        /// </returns>
-        public string GetMessageLogFilePath()
-        {
-            // Create the log file path
-            string logFolder = Path.Combine(
-                Environment.GetFolderPath(
-                    Environment.SpecialFolder.CommonApplicationData),
-                PlexInstallLogFolder);
-
-            return Path.Combine(logFolder, PlexMessageLogFile);
         }
 
         /// <summary>
@@ -722,7 +735,7 @@ namespace TE.Plex
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                Log.Write("The token could not be found.");
+                OnUpdateMessage("The token could not be found.");
                 return playCount;
             }
 
@@ -748,7 +761,7 @@ namespace TE.Plex
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                Log.Write("The token could not be found.");
+                OnUpdateMessage("The token could not be found.");
                 return inProgressRecordingCount;
             }
 
@@ -810,7 +823,7 @@ namespace TE.Plex
                 "PlexTranscoder.exe"
             };
 
-            Log.Write("Stopping the Plex Media Server processes.");
+            OnUpdateMessage("Stopping the Plex Media Server processes.");
             for (int i = 0; i <= processes.Length - 1; i++)
             {
                 StopProcess(processes[i]);

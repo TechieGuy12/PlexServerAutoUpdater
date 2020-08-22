@@ -26,17 +26,6 @@ namespace TE.Plex
         private MediaServer _server = null;
 
         /// <summary>
-        /// The log file that contains the messages regarding the update.
-        /// </summary>
-        private string _messageLogFile;
-
-        /// <summary>
-        /// Flag indicating that there was an issue writing a message to the
-        /// message log file.
-        /// </summary>
-        private bool _isMessageError;
-
-        /// <summary>
         /// The wait timer.
         /// </summary>
         private Timer _timer = null;
@@ -78,71 +67,7 @@ namespace TE.Plex
         /// </param>
         private void ServerUpdateMessage(object sender, string message)
         {
-            // If an error occurred when writing an update message to the log
-            // file, just return from the function without trying again
-            if (_isMessageError)
-            {
-                return;
-            }
-
-            if (_server == null)
-            {
-                _isMessageError = true;
-                Log.Write("There was an issue connecting to the media server.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(_messageLogFile))
-            {
-                _isMessageError = true;
-                Log.Write(
-                    "The message log file was not specified. The installation log will still be written.");
-            }
-
-            try
-            {
-                using (StreamWriter sw =
-                       new StreamWriter(_messageLogFile, true))
-                {
-                    sw.WriteLine(message);
-                    Log.Write(message);
-                }
-            }
-            catch (UnauthorizedAccessException)
-            {
-                _isMessageError = true;
-                Log.Write(
-                    $"Access to the message log file is denied.{NewLine}Message log path: {_messageLogFile}");
-            }
-            catch (DirectoryNotFoundException)
-            {
-                _isMessageError = true;
-                Log.Write(
-                    $"The message file directory could not be found.{NewLine}Message log path: {_messageLogFile}");
-            }
-            catch (PathTooLongException)
-            {
-                _isMessageError = true;
-                Log.Write(
-                    $"The message log path is too long. The total length of the path must be less than 260 characters.{NewLine}Message log path: {_messageLogFile}");
-            }
-            catch (IOException)
-            {
-                _isMessageError = true;
-                Log.Write(
-                    $"The message log path is invalid.{NewLine}Message log path: {_messageLogFile}");
-            }
-            catch (System.Security.SecurityException)
-            {
-                _isMessageError = true;
-                Log.Write(
-                    $"The user does not have the required permissions to write to the message file.{NewLine}Message log path: {_messageLogFile}");
-            }
-            catch (Exception ex)
-            {
-                _isMessageError = true;
-                Log.Write(
-                    $"An error occurred trying to write to the message log:{NewLine}{ex.Message}.{NewLine}Message log path: {_messageLogFile}");
-            }
+            Log.Write(message);
         }
 
         /// <summary>
@@ -235,7 +160,7 @@ namespace TE.Plex
         {
             try
             {
-                _server = new MediaServer(true);
+                _server = new MediaServer(true, ServerUpdateMessage);
                 _timer = new Timer(DefaultWaitTime * 1000);
                 _timer.Elapsed += OnTimedEvent;
                 _timer.Enabled = false;
@@ -261,54 +186,6 @@ namespace TE.Plex
             {
                 Log.Write(ex);
                 return;
-            }
-
-            _server.UpdateMessage += ServerUpdateMessage;
-            _messageLogFile = _server.GetMessageLogFilePath();
-            _isMessageError = (_messageLogFile.Length > 0);
-
-            if (!string.IsNullOrWhiteSpace(_messageLogFile))
-            {
-                // If the message log file exists, attempt to delete it
-                if (File.Exists(_messageLogFile))
-                {
-                    try
-                    {
-                        File.Delete(_messageLogFile);
-                    }
-                    catch (PathTooLongException)
-                    {
-                        Log.Write(
-                            $"The message log file path is too long.{NewLine}Message log path: {_messageLogFile}");
-
-                        _isMessageError = false;
-                        _messageLogFile = string.Empty;
-                    }
-                    catch (IOException)
-                    {
-                        Log.Write(
-                            $"The message log file is in use. The messages won't be written to the log file but the installation log will still be written.{NewLine}Message log path: {_messageLogFile}");
-
-                        _isMessageError = false;
-                        _messageLogFile = string.Empty;
-                    }
-                    catch (NotSupportedException)
-                    {
-                        Log.Write(
-                            $"The message log path is invalid.{NewLine}Message log path: {_messageLogFile}");
-
-                        _isMessageError = false;
-                        _messageLogFile = string.Empty;
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        Log.Write(
-                            $"The message log path cannot be accessed.{NewLine}Message log path: {_messageLogFile}");
-
-                        _isMessageError = false;
-                        _messageLogFile = string.Empty;
-                    }
-                }
             }
         }
 
@@ -347,7 +224,7 @@ namespace TE.Plex
         public void Run()
         {
             try
-            {
+            {               
                 Log.Write("Checking for server update.");
                 if (_server.IsUpdateAvailable())
                 {
@@ -359,8 +236,9 @@ namespace TE.Plex
                 }
                 else
                 {
-                    Log.Write("No update is available. Exiting.");
+                    Log.Write("No update is available. Exiting.");                
                 }
+                _server.DeleteRunKey();
             }
             catch (Exception ex)
             {

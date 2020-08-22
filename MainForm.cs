@@ -267,7 +267,7 @@ namespace TE.Plex
                 _timer.Interval = Convert.ToDouble(numSeconds.Value * 1000);
 
                 Log.Write("Initializing the Plex media server object.");
-                _server = new MediaServer();
+                _server = new MediaServer(ServerUpdateMessage);
 
                 if (_server == null)
                 {
@@ -276,8 +276,6 @@ namespace TE.Plex
                     ToBeClosed = true;
                     return;
                 }
-
-                _server.UpdateMessage += ServerUpdateMessage;
 
                 lblInstalledVersion.Text = _server.CurrentVersion.ToString();
                 lblLatestVersion.Text = _server.LatestVersion.ToString();

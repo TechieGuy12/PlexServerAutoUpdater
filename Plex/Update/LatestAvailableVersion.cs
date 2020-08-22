@@ -78,6 +78,11 @@ namespace TE.Plex.Update
         /// The Plex user's registry key.
         /// </summary>
         private string _plexUserRegistryKey;
+
+        /// <summary>
+        /// The Plex user's token.
+        /// </summary>
+        private string _token;
         #endregion
 
         #region Properties
@@ -89,11 +94,19 @@ namespace TE.Plex.Update
 
         #region Constructors
         /// <summary>
-        /// Creates an instance of the <see cref="Download"/> class.
+        /// Creates an instance of the <see cref="LatestAvailableVersion"/> class
+        /// when provided with the Plex user's registry key and the user's token.
         /// </summary>
-        public LatestAvailableVersion(string plexUserRegistryKey)
+        /// <param name="plexUserRegistryKey">
+        /// The Plex user's registry key.
+        /// </param>
+        /// <param name="token">
+        /// The Plex user's token.
+        /// </param>
+        public LatestAvailableVersion(string plexUserRegistryKey, string token)
         {
             _plexUserRegistryKey = plexUserRegistryKey;
+            _token = token;
         }
         #endregion
 
@@ -310,12 +323,9 @@ namespace TE.Plex.Update
         {
             string content;
 
-            // Get the Plex token for the Plex user
-            string token = MediaServer.GetToken(_plexUserRegistryKey);
-
-            if (token != null)
+            if (_token != null)
             {
-                _client.DefaultRequestHeaders.Add("X-Plex-Token", token);
+                _client.DefaultRequestHeaders.Add("X-Plex-Token", _token);
             }
 
             try

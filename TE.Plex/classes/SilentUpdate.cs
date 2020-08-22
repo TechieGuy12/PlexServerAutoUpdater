@@ -85,7 +85,7 @@ namespace TE.Plex
                 return;
             }
 
-            if (_server != null)
+            if (_server == null)
             {
                 _isMessageError = true;
                 Log.Write("There was an issue connecting to the media server.");

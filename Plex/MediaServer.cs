@@ -107,23 +107,6 @@ namespace TE.Plex
         /// </summary>
         private const string DisplayName = "Plex Media Server";
         /// <summary>
-        /// The root key for the users registry hive.
-        /// </summary>
-        private const string RegistryUsersRoot = "HKEY_USERS";
-        /// <summary>
-        /// The registry key tree for the Plex information.
-        /// </summary>
-        private const string RegistryPlexKey = @"\SOFTWARE\Plex, Inc.\Plex Media Server\";
-        /// <summary>
-        /// The registry run key that starts Plex Media Server at Windows
-        /// startup.
-        /// </summary>
-        private const string RegistryRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run\Plex Media Server";
-        /// <summary>
-        /// The name of the local Plex data path registry value.
-        /// </summary>
-        private const string RegistryPlexDataPathValueName = "LocalAppDataPath";
-        /// <summary>
         /// The name of the Plex Media Server executable.
         /// </summary>
         private const string PlexExecutable = "Plex Media Server.exe";
@@ -167,6 +150,11 @@ namespace TE.Plex
         /// The Plex service.
         /// </summary>
         private ServerService plexService = null;
+
+        /// <summary>
+        /// The registry settings for Plex.
+        /// </summary>
+        private Registry plexRegistry = null;
 
         /// <summary>
         /// The HTTP client used to connect to the Plex website.
@@ -275,45 +263,6 @@ namespace TE.Plex
             Version converted = null;
             Version.TryParse(version, out converted);
             return converted;
-        }
-
-        /// <summary>
-        /// Delete the Plex Server run keys for both the user that performed
-        /// the installation, and the user associated with the Plex Service.
-        /// </summary>
-        private void DeleteRunKey()
-        {
-            OnUpdateMessage("Deleting Run keys in registry.");
-
-            try
-            {
-                // Delete the run keys from the registry for the current user
-                Registry.CurrentUser.DeleteSubKeyTree(RegistryRunKey);
-
-                if (!string.IsNullOrEmpty(serviceUserSid))
-                {
-                    // Delete the run keys from the registry for the user
-                    // associated with the Plex service
-                    Registry.Users.DeleteSubKeyTree(
-                        $"{serviceUserSid}\\{RegistryRunKey}");
-                }
-            }
-            catch (ArgumentException)
-            {
-                OnUpdateMessage("The run key in the registry doesn't have a valid subkey.");
-            }
-            catch (IOException)
-            {
-                OnUpdateMessage("Couldn't delete the run key from the registry because there was an I/O problem.");
-            }
-            catch (System.Security.SecurityException)
-            {
-                OnUpdateMessage("The user does not have permission to delete the run key in the registry.");
-            }
-            catch (UnauthorizedAccessException)
-            {
-                OnUpdateMessage("The user does not have the necessary registry rights.");
-            }
         }
 
         /// <summary>
@@ -446,60 +395,6 @@ namespace TE.Plex
 
             Log.Write($"Latest packages file: {file.FullName}");
             return file.FullName;
-        }
-
-        /// <summary>
-        /// Gets the local Plex data folder used by the Plex service.
-        /// </summary>
-        /// <returns>
-        /// The full path to the local Plex data folder.
-        /// </returns>
-        /// <exception cref="System.InvalidOperationException">
-        /// The Plex service ID could not be found.
-        /// </exception>
-        /// <exception cref="System.IO.DirectoryNotFoundException">
-        /// The local data folder could not be found.
-        /// </exception>
-        private string GetLocalDataFolder()
-        {
-            // Get the unique user SID for the Plex service user
-            serviceUserSid = plexService.LogOnUser.Sid;
-
-            if (string.IsNullOrEmpty(serviceUserSid))
-            {
-                throw new InvalidOperationException(
-                    "The Plex service user ID could not be found.");
-            }
-
-            string folder;
-
-            try
-            {
-                // Get the Plex local data folder from the users registry hive
-                // for the user ID associated with the Plex service
-                Log.Write("Get the local data folder for Plex.");
-                folder = Registry.GetValue(
-                    $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}",
-                    RegistryPlexDataPathValueName,
-                    string.Empty).ToString();
-            }
-            catch
-            {
-                folder = string.Empty;
-            }
-
-            if (string.IsNullOrEmpty(folder))
-            {
-                // Default to the standard local application data folder
-                // for the Plex service user is the LocalAppDataPath value
-                // is missing from the registry
-                Log.Write(
-                    "Couldn't find the local data folder in the registry, so defaulting to the logged in user's local application data folder.");
-                folder = plexService.LogOnUser.LocalAppDataFolder;
-            }
-
-            Log.Write($"Plex local data folder: {folder}");
-            return folder;
         }
 
         /// <summary>
@@ -658,16 +553,16 @@ namespace TE.Plex
             // Populate a service object with information about the Plex
             // service
             plexService = new ServerService();
-
             if (plexService == null)
             {
                 throw new InvalidOperationException(
                     "The Plex service could not be found.");
             }
 
-            // Get the Plex folders
-            LocalDataFolder = GetLocalDataFolder();
+            plexRegistry = new Registry(plexService.LogOnUser);
 
+            // Get the Plex folders
+            LocalDataFolder = plexRegistry.GetLocalDataFolder();
             if (string.IsNullOrEmpty(LocalDataFolder))
             {
                 throw new PlexDataFolderNotFoundException(
@@ -823,8 +718,7 @@ namespace TE.Plex
         public int GetPlayCount()
         {
             int playCount = Api.Unknown;
-            string token = GetToken(
-                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+            string token = plexRegistry.GetToken();
 
             if (string.IsNullOrWhiteSpace(token))
             {
@@ -850,8 +744,7 @@ namespace TE.Plex
         public int GetInProgressRecordingCount()
         {
             int inProgressRecordingCount = Api.Unknown;
-            string token = GetToken(
-                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+            string token = plexRegistry.GetToken();
 
             if (string.IsNullOrWhiteSpace(token))
             {
@@ -866,30 +759,6 @@ namespace TE.Plex
             OnInProgressRecordingCountChanged(inProgressRecordingCount);
 
             return inProgressRecordingCount;
-        }
-
-        /// <summary>
-        /// Gets the Plex token for the logged in Plex user.
-        /// </summary>
-        /// <returns>
-        /// A Plex token or null if the token could not be retrieved.
-        /// </returns>
-        public static string GetToken(string plexRegistryKey)
-        {
-            try
-            {
-                return (string)Registry.GetValue(
-                    plexRegistryKey,
-                    "PlexOnlineToken",
-                    null);
-            }
-            catch (Exception ex)
-                when (ex is IOException || ex is System.Security.SecurityException || ex is ArgumentException)
-            {
-                Log.Write($"ERROR: The Plex token could not be retrieved from the registry. Reason: {ex.Message}");
-                return null;
-            }
-
         }
 
         /// <summary>
@@ -977,7 +846,7 @@ namespace TE.Plex
                 OnUpdateMessage("END: Running update.");
 
                 OnUpdateMessage("START: Deleting Plex Run registry keys.");
-                DeleteRunKey();
+                plexRegistry.DeleteRunKey();
                 OnUpdateMessage("END: Deleting Plex Run registry keys.");
                 GetVersions();
             }

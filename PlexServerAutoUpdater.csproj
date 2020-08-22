@@ -78,24 +78,27 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TE.LocalSystem.Msi\Api.cs" />
-    <Compile Include="TE.LocalSystem.Msi\InstalledProduct.cs" />
-    <Compile Include="TE.LocalSystem.Msi\InstallProperty.cs" />
-    <Compile Include="TE.LocalSystem.Msi\MsiException.cs" />
-    <Compile Include="TE.LocalSystem\classes\exceptions\WindowsUserSidNotFound.cs" />
-    <Compile Include="TE.LocalSystem\classes\WinApi.cs" />
-    <Compile Include="TE.Plex.Update\classes\CurrentVersion.cs" />
-    <Compile Include="TE.Plex.Update\classes\LatestAvailableVersion.cs" />
-    <Compile Include="TE.Plex.Update\classes\Release.cs" />
-    <Compile Include="TE.Plex.Update\classes\SystemType.cs" />
-    <Compile Include="TE.Plex\classes\Api.cs" />
-    <Compile Include="TE.Plex\classes\exceptions\AppNotInstalledException.cs" />
-    <Compile Include="TE.Plex\classes\exceptions\PlexDataFolderNotFoundException.cs" />
-    <Compile Include="TE.Plex\classes\exceptions\ServiceNotInstalledException.cs" />
-    <Compile Include="TE.Plex\classes\MediaContainer.cs" />
-    <Compile Include="TE.Plex\classes\MediaServer.cs" />
-    <Compile Include="TE.Plex\classes\ServerService.cs" />
-    <Compile Include="TE.LocalSystem\classes\WindowsUser.cs" />
+    <Compile Include="LocalSystem\Msi\Api.cs" />
+    <Compile Include="LocalSystem\Msi\InstalledProduct.cs" />
+    <Compile Include="LocalSystem\Msi\InstallProperty.cs" />
+    <Compile Include="LocalSystem\Msi\MsiException.cs" />
+    <Compile Include="LocalSystem\WindowsUserSidNotFound.cs" />
+    <Compile Include="LocalSystem\WinApi.cs" />
+    <Compile Include="Plex\ComponentBase.cs" />
+    <Compile Include="Plex\Defs.cs" />
+    <Compile Include="Plex\Registry.cs" />
+    <Compile Include="Plex\Update\CurrentVersion.cs" />
+    <Compile Include="Plex\Update\LatestAvailableVersion.cs" />
+    <Compile Include="Plex\Update\Release.cs" />
+    <Compile Include="Plex\Update\SystemType.cs" />
+    <Compile Include="Plex\Api.cs" />
+    <Compile Include="Plex\AppNotInstalledException.cs" />
+    <Compile Include="Plex\PlexDataFolderNotFoundException.cs" />
+    <Compile Include="Plex\ServiceNotInstalledException.cs" />
+    <Compile Include="Plex\MediaContainer.cs" />
+    <Compile Include="Plex\MediaServer.cs" />
+    <Compile Include="Plex\ServerService.cs" />
+    <Compile Include="LocalSystem\WindowsUser.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -104,10 +107,10 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TE.Plex\classes\SilentUpdate.cs" />
-    <Compile Include="TE\Arguments.cs" />
-    <Compile Include="TE\Log.cs" />
-    <Compile Include="TE\SystemExitCodes.cs" />
+    <Compile Include="Plex\SilentUpdate.cs" />
+    <Compile Include="Arguments.cs" />
+    <Compile Include="Log.cs" />
+    <Compile Include="SystemExitCodes.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

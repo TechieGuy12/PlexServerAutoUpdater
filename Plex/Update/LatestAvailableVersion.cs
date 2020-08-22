@@ -46,23 +46,6 @@ namespace TE.Plex.Update
         }
         #endregion
 
-        #region Private Enumerations
-        /// <summary>
-        /// The type of installation package.
-        /// </summary>
-        private enum PackageType
-        {
-            /// <summary>
-            /// Public released package.
-            /// </summary>
-            Public = 0,
-            /// <summary>
-            /// Plex Pass-only package.
-            /// </summary>
-            PlexPass = 8
-        }
-        #endregion
-
         #region Private Constants
         /// <summary>
         /// The public URL to the JSON data that contains information about the

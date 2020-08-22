@@ -74,9 +74,14 @@ namespace TE.Plex.Update
         private HttpClient _client = new HttpClient();
 
         /// <summary>
-        /// The Plex user's registry key.
+        /// The local application data folder for Plex.
         /// </summary>
-        private string _plexUserRegistryKey;
+        private string _localAppDataFolder;
+
+        /// <summary>
+        /// The update channel used to update Plex.
+        /// </summary>
+        private UpdateChannel _updateChannel;
 
         /// <summary>
         /// The Plex user's token.
@@ -96,16 +101,27 @@ namespace TE.Plex.Update
         /// Creates an instance of the <see cref="Package"/> class
         /// when provided with the Plex user's registry key and the user's token.
         /// </summary>
-        /// <param name="plexUserRegistryKey">
-        /// The Plex user's registry key.
+        /// <param name="localAppDataFolder">
+        /// The local application data folder for Plex.
+        /// </param>
+        /// <param name="updateChannel">
+        /// The update channel used to update Plex.
         /// </param>
         /// <param name="token">
         /// The Plex user's token.
         /// </param>
-        public Package(string plexUserRegistryKey, string token)
+        /// <exception cref="ArgumentNullException">
+        /// An argument provided is <c>null</c>.
+        /// </exception>
+        public Package(
+            string localAppDataFolder,
+            UpdateChannel updateChannel,
+            string token)
         {
-            _plexUserRegistryKey = plexUserRegistryKey;
-            _token = token;
+            _localAppDataFolder =
+                localAppDataFolder ?? throw new ArgumentNullException(nameof(localAppDataFolder));
+            _updateChannel = updateChannel;
+            _token = token ?? throw new ArgumentNullException(nameof(token));
         }
         #endregion
 
@@ -117,7 +133,8 @@ namespace TE.Plex.Update
         /// The full path to the file.
         /// </param>
         /// <returns>
-        /// The checksum for the file.
+        /// The checksum for the file or <c>null</c> if the checksum could not
+        /// be determined.
         /// </returns>
         private string GetChecksum(string filePath)
         {
@@ -158,7 +175,8 @@ namespace TE.Plex.Update
         /// Gets the filename for the latest install file.
         /// </summary>
         /// <returns>
-        /// The filename of the latest install file.
+        /// The filename of the latest install file or <c>null</c> if the latest
+        /// install file could not be determined.
         /// </returns>
         private string GetFileName()
         {
@@ -193,8 +211,8 @@ namespace TE.Plex.Update
         /// Gets the full local path for the install package.
         /// </summary>
         /// <returns>
-        /// The full path for the install package, or null if the full path
-        /// could not be determined.
+        /// The full path for the install package, or <c>null</c> if the full
+        /// path could not be determined.
         /// </returns>
         private string GetFullPath()
         {
@@ -226,36 +244,35 @@ namespace TE.Plex.Update
         /// Gets the download package local path.
         /// </summary>
         /// <returns>
-        /// The downloaded package local path or null if the path could not
+        /// The downloaded package local path or <c>null</c> if the path could not
         /// be determined.
         /// </returns>
         private string GetPath()
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(_localAppDataFolder))
+                {
+                    return null;
+                }
+
                 if (LatestWindowsVersion == null)
                 {
                     return null;
                 }
 
-                string version = LatestWindowsVersion.Version;
-                string appPath = (string)Registry.GetValue(
-                    _plexUserRegistryKey,
-                    "LocalAppDataPath",
-                    null);
-
-                if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(appPath))
+                if (string.IsNullOrWhiteSpace(LatestWindowsVersion.Version))
                 {
-                    OnMessageChanged($"The registry value from '{_plexUserRegistryKey}\\LocalAppDataPath' could not be retrieved. Verify that the registry value exists.");
                     return null;
                 }
 
-                return Path.Combine(appPath, $@"Plex Media Server\Updates\{version}\packages");
+                return Path.Combine(
+                    _localAppDataFolder, 
+                    $@"Plex Media Server\Updates\{LatestWindowsVersion.Version}\packages");
             }
             catch (Exception ex)
-                when (ex is IOException || ex is System.Security.SecurityException)
+                when (ex is ArgumentException || ex is System.Security.SecurityException)
             {
-                OnMessageChanged($"The registry value from '{_plexUserRegistryKey}\\LocalAppDataPath' could not be retrieved. Reason: {ex.Message}");
                 return null;
             }
         }
@@ -270,35 +287,7 @@ namespace TE.Plex.Update
         /// </returns>
         private string GetUrl()
         {
-            string value = null;
-            try
-            {
-                value = (string)Registry.GetValue(
-                    _plexUserRegistryKey,
-                    "ButlerUpdateChannel",
-                    null);
-            }
-            catch (Exception ex)
-                when (ex is System.Security.SecurityException || ex is IOException)
-            {
-                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' could not be retrieved. Reason: {ex.Message}");
-                return PlexPackageJsonUrl;
-            }
-
-            if (value == null)
-            {
-                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' could not be retrieved. Defaulting to the Public Plex update.");
-                return PlexPackagePublicJsonUrl;
-            }
-
-            int updateChannel;
-            if (!int.TryParse(value, out updateChannel))
-            {
-                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' needs to be an numeric value, and it was '{value}' instead. Defaulting to the Public Plex update");
-                return PlexPackagePublicJsonUrl;
-            }
-
-            if (updateChannel == (int)UpdateChannel.PlexPass)
+            if (_updateChannel == UpdateChannel.PlexPass)
             {
                 OnMessageChanged("The update channel is set for Plex Pass.");
                 return PlexPackageJsonUrl + PlexPackageJsonUrlBeta;

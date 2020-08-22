@@ -206,6 +206,11 @@ namespace TE.Plex
         public Version LatestVersion { get; private set; }
 
         /// <summary>
+        /// Gets the update channel used to update Plex.
+        /// </summary>
+        public UpdateChannel UpdateChannel { get; private set; }
+
+        /// <summary>
         /// Gets or sets the flag indicating the installation is silent.
         /// </summary>
         public bool IsSilent { get; set; }
@@ -374,7 +379,8 @@ namespace TE.Plex
             }
 
             Package availableVersion = new Package(
-                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}",
+                LocalDataFolder, 
+                UpdateChannel,
                 token);
             availableVersion.MessageChanged += Message_Changed;
 
@@ -611,12 +617,15 @@ namespace TE.Plex
             {
                 throw new PlexDataFolderNotFoundException(
                     "The Plex local application data folder could not be found for the Plex Windows account.");
-            }
+            }            
 
             UpdatesFolder =
                 Path.Combine(LocalDataFolder, PlexUpdatesFolder);
 
+            UpdateChannel = plexRegistry.GeUpdateChannel();
+
             GetVersions();
+
             PlayCount = GetPlayCount();
             InProgressRecordingCount = GetInProgressRecordingCount();
         }

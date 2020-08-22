@@ -303,51 +303,6 @@ namespace TE.Plex
         }
 
         /// <summary>
-        /// Format the version number retrieved from the Plex update file.
-        /// </summary>
-        /// <param name="version">
-        /// The version to format.
-        /// </param>
-        /// <returns>
-        /// The formatted version of the Plex update file.
-        /// </returns>
-        private string FormatFileNameVersion(string version)
-        {
-            string fileVersion = string.Empty;
-
-            if (string.IsNullOrEmpty(version))
-            {
-                return fileVersion;
-            }
-
-            string[] parts = version.Split('.');
-
-            if (parts.Length > 0)
-            {
-                try
-                {
-                    fileVersion = $"{parts[0]}.{parts[1]}";
-
-                    if (parts[2].Length > 2)
-                    {
-                        fileVersion += $".{parts[2].Substring(0, 2)}";
-                        fileVersion += $".{parts[2].Substring(2)}";
-                    }
-                    else
-                    {
-                        fileVersion += parts[2];
-                    }
-                }
-                catch (IndexOutOfRangeException)
-                {
-                    return fileVersion;
-                }
-            }
-
-            return fileVersion;
-        }
-
-        /// <summary>
         /// Gets the latest installation package download for the server.
         /// </summary>
         /// <returns>

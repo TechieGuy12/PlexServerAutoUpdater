@@ -238,7 +238,6 @@ namespace TE.Plex
                 {
                     Log.Write("No update is available. Exiting.");                
                 }
-                _server.DeleteRunKey();
             }
             catch (Exception ex)
             {

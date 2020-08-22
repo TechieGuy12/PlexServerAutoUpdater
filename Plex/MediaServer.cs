@@ -858,9 +858,9 @@ namespace TE.Plex
                 RunInstall();
                 OnUpdateMessage("END: Running update.");
 
-                OnUpdateMessage("START: Deleting Plex Run registry keys.");
-                plexRegistry.DeleteRunKey();
-                OnUpdateMessage("END: Deleting Plex Run registry keys.");
+                OnUpdateMessage("START: Deleting Plex Run registry value.");
+                plexRegistry.DeleteRunValue();
+                OnUpdateMessage("END: Deleting Plex Run registry value.");
                 GetVersions();
             }
             catch

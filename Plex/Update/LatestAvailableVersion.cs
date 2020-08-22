@@ -7,7 +7,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.Win32;
 using Newtonsoft.Json;
 
 namespace TE.Plex.Update

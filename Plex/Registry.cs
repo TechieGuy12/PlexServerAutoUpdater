@@ -111,7 +111,19 @@ namespace TE.Plex
         /// True if the registry value has been deleted, false if the value
         /// could not be deleted.
         /// </returns>
-        internal bool DeleteRunKey()
+        /// <exception cref="ObjectDisposedException">
+        /// The RegistryKey is closed (closed keys cannot be accessed).
+        /// </exception>
+        /// <exception cref="SecurityException">
+        /// The user does not have the permissions required to read from the registry key.
+        /// </exception>
+        /// <exception cref="IOException">
+        /// The RegistryKey that contains the specified value has been marked for deletion.
+        /// </exception>
+        /// <exception cref="UnauthorizedAccessException">
+        /// The user does not have the necessary registry rights.
+        /// </exception
+        internal bool DeleteRunValue()
         {
             using (Win32.RegistryKey key = Win32.Registry.CurrentUser.OpenSubKey(RegistryRunKey, true))
             {

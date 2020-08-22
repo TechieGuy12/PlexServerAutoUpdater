@@ -15,7 +15,7 @@ namespace TE.Plex.Update
     /// Properties and methods for downloading the latest version of the Plex
     /// Media Server for Windows.
     /// </summary>
-    public class LatestAvailableVersion
+    public class Package
     {
         #region Event Delegates
         /// <summary>
@@ -93,7 +93,7 @@ namespace TE.Plex.Update
 
         #region Constructors
         /// <summary>
-        /// Creates an instance of the <see cref="LatestAvailableVersion"/> class
+        /// Creates an instance of the <see cref="Package"/> class
         /// when provided with the Plex user's registry key and the user's token.
         /// </summary>
         /// <param name="plexUserRegistryKey">
@@ -102,7 +102,7 @@ namespace TE.Plex.Update
         /// <param name="token">
         /// The Plex user's token.
         /// </param>
-        public LatestAvailableVersion(string plexUserRegistryKey, string token)
+        public Package(string plexUserRegistryKey, string token)
         {
             _plexUserRegistryKey = plexUserRegistryKey;
             _token = token;
@@ -160,7 +160,7 @@ namespace TE.Plex.Update
         /// <returns>
         /// The filename of the latest install file.
         /// </returns>
-        private string GetPackageFileName()
+        private string GetFileName()
         {
             if (LatestWindowsVersion == null)
             {
@@ -196,7 +196,7 @@ namespace TE.Plex.Update
         /// The full path for the install package, or null if the full path
         /// could not be determined.
         /// </returns>
-        private string GetPackageFullPath()
+        private string GetFullPath()
         {
             if (LatestWindowsVersion == null)
             {
@@ -205,7 +205,7 @@ namespace TE.Plex.Update
 
             // Get the local path for the latest install and verify the folder
             // exists
-            string folder = GetPackagePath();
+            string folder = GetPath();
             if (string.IsNullOrEmpty(folder))
             {
                 return null;
@@ -213,7 +213,7 @@ namespace TE.Plex.Update
 
             // Get the full path to the latest install and then verify the file
             // exists
-            string name = GetPackageFileName();
+            string name = GetFileName();
             if (string.IsNullOrEmpty(name))
             {
                 return null;
@@ -229,7 +229,7 @@ namespace TE.Plex.Update
         /// The downloaded package local path or null if the path could not
         /// be determined.
         /// </returns>
-        private string GetPackagePath()
+        private string GetPath()
         {
             try
             {
@@ -268,7 +268,7 @@ namespace TE.Plex.Update
         /// The URL for the specified update channel package, or the public URL
         /// if the URL could not be determined.
         /// </returns>
-        private string GetPackageUrl()
+        private string GetUrl()
         {
             string value = null;
             try
@@ -298,7 +298,7 @@ namespace TE.Plex.Update
                 return PlexPackagePublicJsonUrl;
             }
 
-            if (updateChannel == (int)PackageType.PlexPass)
+            if (updateChannel == (int)UpdateChannel.PlexPass)
             {
                 OnMessageChanged("The update channel is set for Plex Pass.");
                 return PlexPackageJsonUrl + PlexPackageJsonUrlBeta;
@@ -318,7 +318,7 @@ namespace TE.Plex.Update
         /// The JSON string value if the request was successful, or null if
         /// the request was not successful.
         /// </returns>
-        private string GetPlexPackageJson()
+        private string GetJson()
         {
             string content;
 
@@ -331,7 +331,7 @@ namespace TE.Plex.Update
             {
                 // Get the URL for the package specified by the update channel
                 // set in the Plex server
-                string url = GetPackageUrl();
+                string url = GetUrl();
                 if (url == null)
                 {
                     return null;
@@ -365,7 +365,7 @@ namespace TE.Plex.Update
         private void Initialize()
         {
             OnMessageChanged("Checking for the latest version from Plex.");
-            string json = GetPlexPackageJson();
+            string json = GetJson();
 
             if (string.IsNullOrEmpty(json))
             {
@@ -428,7 +428,7 @@ namespace TE.Plex.Update
                 return false;
             }
 
-            string filePath = GetPackageFullPath();
+            string filePath = GetFullPath();
             if (string.IsNullOrEmpty(filePath))
             {
                 OnMessageChanged(
@@ -574,7 +574,7 @@ namespace TE.Plex.Update
 
             // Get the local path for the latest install and verify the folder
             // exists            
-            string folder = GetPackagePath();
+            string folder = GetPath();
             if (string.IsNullOrEmpty(folder))
             {
                 OnMessageChanged("The package folder could not be determined.");
@@ -590,7 +590,7 @@ namespace TE.Plex.Update
 
             // Get the full path to the latest install and then verify the file
             // exists
-            string name = GetPackageFileName();
+            string name = GetFileName();
             if (string.IsNullOrEmpty(name))
             {
                 OnMessageChanged(

@@ -351,15 +351,15 @@ namespace TE.Plex
             // Get the unique user SID for the Plex service user
             serviceUserSid = plexService.LogOnUser.Sid;
 
-            string token = GetToken(
-                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+            string token = plexRegistry.GetToken();
+
             if (token == null)
             {
                 OnUpdateMessage("Could not get the latest install package.");
                 return string.Empty;
             }
 
-            LatestAvailableVersion availableVersion = new LatestAvailableVersion(
+            Package availableVersion = new Package(
                 $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}",
                 token);
             availableVersion.MessageChanged += Message_Changed;

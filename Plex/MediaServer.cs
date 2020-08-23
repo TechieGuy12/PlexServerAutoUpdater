@@ -9,6 +9,7 @@ using Msi = TE.LocalSystem.Msi;
 using TE.Plex.Update;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Security;
 
 namespace TE.Plex
 {
@@ -631,34 +632,24 @@ namespace TE.Plex
         /// Gets the full path to the installation log file.
         /// </summary>
         /// <returns>
-        /// The installation log file path.
+        /// The installation log file path, or <c>null</c> if the path could not
+        /// be set.
         /// </returns>
         public string GetInstallLogFilePath()
         {
-            OnUpdateMessage("Setting the installation log path.");
-            string logFolder = Environment.GetFolderPath(
-                    Environment.SpecialFolder.CommonApplicationData);
-
-            string installLogFolder =
-                Path.Combine(logFolder, PlexInstallLogFolder);
-
-            if (!Directory.Exists(installLogFolder))
+            try
             {
-                try
-                {
-                    Directory.CreateDirectory(installLogFolder);
-                }
-                catch (Exception ex)
-                    when (ex is IOException || ex is UnauthorizedAccessException || ex is NotSupportedException)
-                {
-                    installLogFolder = Path.GetTempPath();
-                }
+                OnUpdateMessage("Setting the installation log path.");
+                string logPath = Path.Combine(Path.GetTempPath(), PlexInstallLogFile);
+                OnUpdateMessage($"Installation log path: {logPath}.");
+
+                return logPath;
             }
-
-            string logPath = Path.Combine(installLogFolder, PlexInstallLogFile);
-            OnUpdateMessage($"Installation log path: {logPath}.");
-
-            return logPath;
+            catch (SecurityException)
+            {
+                OnUpdateMessage("The user does not have permission to get the TEMP path.");
+                return null;
+            }
         }
 
         /// <summary>

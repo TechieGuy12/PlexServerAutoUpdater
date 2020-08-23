@@ -14,7 +14,7 @@ namespace TE.Plex
     /// Contains the methods used to get the Plex data values from the Windows
     /// registry.
     /// </summary>
-    internal class Registry
+    internal class Registry : PlexClassBase
     {
         /// <summary>
         /// The registry key tree for the Plex information.
@@ -125,25 +125,38 @@ namespace TE.Plex
         /// </exception
         internal bool DeleteRunValue()
         {
-            using (Win32.RegistryKey key = Win32.Registry.CurrentUser.OpenSubKey(RegistryRunKey, true))
+            try
             {
-                if (key != null)
+                using (Win32.RegistryKey key = Win32.Registry.CurrentUser.OpenSubKey(RegistryRunKey, true))
                 {
-                    if (key.GetValue(RegistryRunValue) == null)
+                    if (key != null)
                     {
-                        return true;
-                    }
+                        try
+                        {
+                            if (key.GetValue(RegistryRunValue) == null)
+                            {
+                                return true;
+                            }
 
-                    try
-                    {
-                        key.DeleteValue(RegistryRunValue);
-                        return (key.GetValue(RegistryRunValue) == null);                        
-                    }
-                    catch (ArgumentException)
-                    {
-                        return true;
+                            key.DeleteValue(RegistryRunValue);
+                            return (key.GetValue(RegistryRunValue) == null);
+                        }
+                        catch (ArgumentException)
+                        {
+                            return true;
+                        }
+                        catch (Exception ex)
+                            when (ex is ObjectDisposedException || ex is IOException || ex is SecurityException || ex is UnauthorizedAccessException)
+                        {
+                            OnMessageChanged($"The Run key value could not be deleted. Reason: {ex.Message}");
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+                when (ex is ObjectDisposedException || ex is SecurityException)
+            {
+                OnMessageChanged($"The Run key value could not be deleted. Reason: {ex.Message}");
             }
 
             return false;
@@ -174,6 +187,7 @@ namespace TE.Plex
             catch (Exception ex)
                 when (ex is ArgumentNullException || ex is ObjectDisposedException || ex is SecurityException || ex is IOException || ex is UnauthorizedAccessException)
             {
+                OnMessageChanged($"The Plex local data folder could not be determined. Reason: {ex.Message}");
                 folder = null;
             }
 
@@ -203,6 +217,7 @@ namespace TE.Plex
             catch (Exception ex)
                 when (ex is ArgumentNullException || ex is ObjectDisposedException || ex is SecurityException || ex is IOException || ex is UnauthorizedAccessException)
             {
+                OnMessageChanged($"The user token could not be determined. Reason: {ex.Message}");
                 return null;
             }
 

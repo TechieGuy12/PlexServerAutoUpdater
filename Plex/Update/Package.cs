@@ -506,14 +506,14 @@ namespace TE.Plex.Update
                 Initialize();
                 if (LatestWindowsVersion == null)
                 {
-                    return default(Version);
+                    return default;
                 }                
             }
 
             string version = LatestWindowsVersion.Version;
             if (string.IsNullOrEmpty(version))
             {
-                return default(Version);
+                return default;
             }
 
             // The regular expression used to parse the file version

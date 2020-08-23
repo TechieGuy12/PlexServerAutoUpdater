@@ -189,7 +189,7 @@ namespace TE.Plex
         /// Gets the full path to the latest installation package that has
         /// been downloaded.
         /// </summary>
-        public string LatestInstallPackage { get; private set; }
+        public Package LatestInstallPackage { get; private set; }
 
         /// <summary>
         /// Gets the currently installed version of Plex Media Server.
@@ -293,31 +293,13 @@ namespace TE.Plex
 
         #region Private Functions
         /// <summary>
-        /// Converts the version number from a string to a <see cref="System.Version"/>
-        /// object.
-        /// </summary>
-        /// <param name="version">
-        /// The string version to convert.
-        /// </param>
-        /// <returns>
-        /// A <see cref="System.Version"/> object of the version, or null if
-        /// the conversion failed.
-        /// </returns>
-        private Version ConvertFromStringToVersion(string version)
-        {
-            Version converted = null;
-            Version.TryParse(version, out converted);
-            return converted;
-        }
-
-        /// <summary>
         /// Gets the latest installation package download for the server.
         /// </summary>
         /// <returns>
         /// The full path to the latest installation package that has been
         /// downloaded or <c>null</c> if the package could not be determined.
         /// </returns>
-        private string GetLatestInstallPackage()
+        private Package GetLatestInstallPackage()
         {
             OnUpdateMessage($"Verify the updates folder is specified.");
             if (string.IsNullOrEmpty(UpdatesFolder))
@@ -361,7 +343,7 @@ namespace TE.Plex
             }
 
             OnUpdateMessage($"Latest packages file: {availableVersion.FilePath}");
-            return availableVersion.FilePath;
+            return availableVersion;
         }
 
         /// <summary>
@@ -374,44 +356,25 @@ namespace TE.Plex
         /// The version number of the file, or an empty string if the version
         /// could not be retrieved.
         /// </returns>
-        private string GetVersionFromFile(string filePath)
+        private Version GetVersionFromFile(string filePath)
         {
-            if (!File.Exists(filePath))
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             {
-                return string.Empty;
+                return default;
             }
 
             try
             {
                 FileVersionInfo version =
                     FileVersionInfo.GetVersionInfo(filePath);
-                return version.FileVersion;
+
+                Version.TryParse(version.FileVersion, out Version convertedVersion);
+                return convertedVersion;
             }
             catch (FileNotFoundException)
             {
-                return string.Empty;
+                return default;
             }
-        }
-
-        /// <summary>
-        /// Gets the version number from a file name.
-        /// </summary>
-        /// <param name="fileName">
-        /// The name of the file.
-        /// </param>
-        /// <returns>
-        /// The version number from the name of the file, or a blank string if
-        /// the version number could not be determined.
-        /// </returns>
-        private string GetVersionFromFileName(string fileName)
-        {
-            if (string.IsNullOrEmpty(fileName))
-            {
-                return string.Empty;
-            }
-
-            Match match = Regex.Match(fileName, @"\d+.\d+.\d+.\d+");
-            return match.Groups[0].Value;
         }
 
         /// <summary>
@@ -470,18 +433,15 @@ namespace TE.Plex
         private void GetVersions()
         {
             // Get the currently installed Plex Media Server version
-            CurrentVersion = ConvertFromStringToVersion(
-                GetVersionFromFile(
-                    Path.Combine(InstallFolder, PlexExecutable)));
+            CurrentVersion = GetVersionFromFile(
+                    Path.Combine(InstallFolder, PlexExecutable));
 
             // Get the latest Plex Media Server version that has been
             // downloaded
             LatestInstallPackage = GetLatestInstallPackage();
-            if (!string.IsNullOrEmpty(LatestInstallPackage))
+            if (LatestInstallPackage != null)
             {
-                LatestVersion = ConvertFromStringToVersion(
-                    GetVersionFromFileName(
-                        Path.GetFileName(LatestInstallPackage)));
+                LatestVersion = LatestInstallPackage.GetVersion();
             }
             else
             {
@@ -564,16 +524,22 @@ namespace TE.Plex
         /// </summary>
         private void RunInstall()
         {
-            OnUpdateMessage("Starting Plex installation.");
-            OnUpdateMessage("Delete any previous installation logs.");
+            OnUpdateMessage("Starting Plex installation.");            
             string logFile = GetInstallLogFilePath();
+            if (string.IsNullOrWhiteSpace(logFile))
+            {
+                OnUpdateMessage("The install log path could not be set. Aborting installation.");
+                return;
+            }
+
+            OnUpdateMessage("Delete any previous installation logs.");
             if (File.Exists(logFile))
             {
                 File.Delete(logFile);
             }
 
             ProcessStartInfo startInfo = new ProcessStartInfo(
-                LatestInstallPackage,
+                LatestInstallPackage.FilePath,
                 PlexInstallParameters + logFile);
 
             OnUpdateMessage("Run Plex installation.");

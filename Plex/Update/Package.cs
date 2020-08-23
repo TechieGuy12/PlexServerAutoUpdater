@@ -15,36 +15,8 @@ namespace TE.Plex.Update
     /// Properties and methods for downloading the latest version of the Plex
     /// Media Server for Windows.
     /// </summary>
-    public class Package
+    public class Package : PlexClassBase
     {
-        #region Event Delegates
-        /// <summary>
-        /// The delegate for the Message event handler.
-        /// </summary>
-        /// <param name="sender">
-        /// The object that triggered the event.
-        /// </param>
-        /// <param name="message">
-        /// The message.
-        /// </param>
-        public delegate void MessageChangedEventHandler(object sender, string messagee);
-        #endregion
-
-        #region Events
-        /// <summary>
-        /// The MessageChanged event member.
-        /// </summary>
-        public event MessageChangedEventHandler MessageChanged;
-
-        /// <summary>
-        /// Triggered when the message has changed.
-        /// </summary>
-        protected virtual void OnMessageChanged(string message)
-        {
-            MessageChanged?.Invoke(this, message);
-        }
-        #endregion
-
         #region Private Constants
         /// <summary>
         /// The public URL to the JSON data that contains information about the

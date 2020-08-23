@@ -31,17 +31,9 @@ namespace TE.Plex
     /// <summary>
     /// Description of MediaServer.
     /// </summary>
-    public class MediaServer
+    public class MediaServer : PlexClassBase
     {
         #region Delegates
-        /// <summary>
-        /// The delegate for the update message event.
-        /// </summary>
-        /// <param name="message">
-        /// The message about the update.
-        /// </param>
-        public delegate void UpdateMessageHandler(object sender, string message);
-
         /// <summary>
         /// The delegate for the play count changed event.
         /// </summary>
@@ -67,11 +59,6 @@ namespace TE.Plex
 
         #region Events
         /// <summary>
-        /// Occurs whenever a message is created during the update.
-        /// </summary>
-        public event UpdateMessageHandler UpdateMessage;
-
-        /// <summary>
         /// Occurs whenever the play count changes.
         /// </summary>
         public event PlayCountChangedHandler PlayCountChanged;
@@ -80,18 +67,6 @@ namespace TE.Plex
         /// Occurs whenever the in progress recording count changes.
         /// </summary>
         public event InProgressRecordingCountChangedHandler InProgressRecordingCountChanged;
-
-        /// <summary>
-        /// Invoke the UpdateMessage event; called whenever a message is
-        /// updated.
-        /// </summary>
-        /// <param name="message">
-        /// The updated message.
-        /// </param>
-        protected virtual void OnUpdateMessage(string message)
-        {
-            UpdateMessage?.Invoke(this, message);
-        }
 
         /// <summary>
         /// Invoke the PlayCountChanged event; called whenever the play count
@@ -219,7 +194,7 @@ namespace TE.Plex
 
         #region Constructors
         /// <summary>
-        /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class.
+        /// Creates an instance of the <see cref="MediaServer"/> class.
         /// </summary>
         public MediaServer()
         {
@@ -227,15 +202,15 @@ namespace TE.Plex
         }
 
         /// <summary>
-        /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
+        /// Creates an instance of the <see cref="MediaServer"/> class
         /// when provided with the <see cref="UpdateMessageHandler"/>.
         /// </summary>
         /// <param name="handler">
         /// The log message handler.
         /// </param>
-        public MediaServer(UpdateMessageHandler handler)
+        public MediaServer(MessageChangedEventHandler handler)
         {
-            UpdateMessage += handler ?? throw new ArgumentNullException(nameof(handler));
+            MessageChanged += handler ?? throw new ArgumentNullException(nameof(handler));
             Initialize();
         }
         #endregion
@@ -252,7 +227,7 @@ namespace TE.Plex
         /// </param>
         private void Message_Changed(object sender, string message)
         {
-            OnUpdateMessage(message);
+            OnMessageChanged(message);
         }
         #endregion
 
@@ -266,18 +241,18 @@ namespace TE.Plex
         /// </returns>
         private Package GetLatestInstallPackage()
         {
-            OnUpdateMessage($"Verify the updates folder is specified.");
+            OnMessageChanged($"Verify the updates folder is specified.");
             if (string.IsNullOrEmpty(UpdatesFolder))
             {
-                OnUpdateMessage(
+                OnMessageChanged(
                     "The Plex updates folder was not specified.");
                 return null;
             }
 
-            OnUpdateMessage($"Verify the updates folder, {UpdatesFolder} exists.");
+            OnMessageChanged($"Verify the updates folder, {UpdatesFolder} exists.");
             if (!Directory.Exists(UpdatesFolder))
             {
-                OnUpdateMessage(
+                OnMessageChanged(
                     $"The Plex updates folder, {UpdatesFolder} could not be found.");
                 return null;
             }
@@ -285,7 +260,7 @@ namespace TE.Plex
             string token = plexRegistry.GetToken();
             if (token == null)
             {
-                OnUpdateMessage("Could not get the latest install package.");
+                OnMessageChanged("Could not get the latest install package.");
                 return null;
             }
 
@@ -302,12 +277,12 @@ namespace TE.Plex
                 bool result = availableVersion.Download().Result;
                 if (!result)
                 {
-                    OnUpdateMessage("The latest available installation could not be downloaded.");
+                    OnMessageChanged("The latest available installation could not be downloaded.");
                     return null;
                 }
             }
 
-            OnUpdateMessage($"Latest packages file: {availableVersion.FilePath}");
+            OnMessageChanged($"Latest packages file: {availableVersion.FilePath}");
             return availableVersion;
         }
 
@@ -488,15 +463,15 @@ namespace TE.Plex
         /// </summary>
         private void RunInstall()
         {
-            OnUpdateMessage("Starting Plex installation.");            
+            OnMessageChanged("Starting Plex installation.");            
             string logFile = GetInstallLogFilePath();
             if (string.IsNullOrWhiteSpace(logFile))
             {
-                OnUpdateMessage("The install log path could not be set. Aborting installation.");
+                OnMessageChanged("The install log path could not be set. Aborting installation.");
                 return;
             }
 
-            OnUpdateMessage("Delete any previous installation logs.");
+            OnMessageChanged("Delete any previous installation logs.");
             if (File.Exists(logFile))
             {
                 File.Delete(logFile);
@@ -506,12 +481,12 @@ namespace TE.Plex
                 LatestInstallPackage.FilePath,
                 PlexInstallParameters + logFile);
 
-            OnUpdateMessage("Run Plex installation.");
+            OnMessageChanged("Run Plex installation.");
             using (Process install = Process.Start(startInfo))
             {
                 install.WaitForExit();
             }
-            OnUpdateMessage("Plex install has finished.");
+            OnMessageChanged("Plex install has finished.");
         }
 
         /// <summary>
@@ -522,7 +497,7 @@ namespace TE.Plex
         /// </param>
         private void StopProcess(string processName)
         {
-            OnUpdateMessage($"Stopping {processName} processes.");
+            OnMessageChanged($"Stopping {processName} processes.");
 
             // Drop the extension from the filename to get the process without
             // using the file extension
@@ -569,15 +544,15 @@ namespace TE.Plex
         {
             try
             {
-                OnUpdateMessage("Setting the installation log path.");
+                OnMessageChanged("Setting the installation log path.");
                 string logPath = Path.Combine(Path.GetTempPath(), PlexInstallLogFile);
-                OnUpdateMessage($"Installation log path: {logPath}.");
+                OnMessageChanged($"Installation log path: {logPath}.");
 
                 return logPath;
             }
             catch (SecurityException)
             {
-                OnUpdateMessage("The user does not have permission to get the TEMP path.");
+                OnMessageChanged("The user does not have permission to get the TEMP path.");
                 return null;
             }
         }
@@ -595,7 +570,7 @@ namespace TE.Plex
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                OnUpdateMessage("The token could not be found.");
+                OnMessageChanged("The token could not be found.");
                 return playCount;
             }
 
@@ -621,7 +596,7 @@ namespace TE.Plex
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                OnUpdateMessage("The token could not be found.");
+                OnMessageChanged("The token could not be found.");
                 return inProgressRecordingCount;
             }
 
@@ -683,7 +658,7 @@ namespace TE.Plex
                 "PlexTranscoder.exe"
             };
 
-            OnUpdateMessage("Stopping the Plex Media Server processes.");
+            OnMessageChanged("Stopping the Plex Media Server processes.");
             for (int i = 0; i <= processes.Length - 1; i++)
             {
                 StopProcess(processes[i]);
@@ -704,23 +679,23 @@ namespace TE.Plex
                     "The Plex service was not found.");
             }
 
-            OnUpdateMessage("START: Stopping the Plex service.");
+            OnMessageChanged("START: Stopping the Plex service.");
             plexService.Stop();
-            OnUpdateMessage("END: Stopping the Plex service.");
+            OnMessageChanged("END: Stopping the Plex service.");
 
-            OnUpdateMessage("START: Stopping the Plex Server processes.");
+            OnMessageChanged("START: Stopping the Plex Server processes.");
             StopProcesses();
-            OnUpdateMessage("END: Stopping the Plex Server processes.");
+            OnMessageChanged("END: Stopping the Plex Server processes.");
 
             try
             {
-                OnUpdateMessage($"START: Running update: {LatestInstallPackage}.");
+                OnMessageChanged($"START: Running update: {LatestInstallPackage}.");
                 RunInstall();
-                OnUpdateMessage("END: Running update.");
+                OnMessageChanged("END: Running update.");
 
-                OnUpdateMessage("START: Deleting Plex Run registry value.");
+                OnMessageChanged("START: Deleting Plex Run registry value.");
                 plexRegistry.DeleteRunValue();
-                OnUpdateMessage("END: Deleting Plex Run registry value.");
+                OnMessageChanged("END: Deleting Plex Run registry value.");
                 GetVersions();
             }
             catch
@@ -729,13 +704,13 @@ namespace TE.Plex
             }
             finally
             {
-                OnUpdateMessage("START: Stopping the Plex Server processes.");
+                OnMessageChanged("START: Stopping the Plex Server processes.");
                 StopProcesses();
-                OnUpdateMessage("END: Stopping the Plex Server processes.");
+                OnMessageChanged("END: Stopping the Plex Server processes.");
 
-                OnUpdateMessage("START: Restarting the Plex service.");
+                OnMessageChanged("START: Restarting the Plex service.");
                 plexService.Start();
-                OnUpdateMessage("END: Restarting the Plex service.");
+                OnMessageChanged("END: Restarting the Plex service.");
             }
         }
         #endregion

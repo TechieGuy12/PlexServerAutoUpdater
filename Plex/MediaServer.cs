@@ -153,11 +153,6 @@ namespace TE.Plex
 
         #region Private Variables
         /// <summary>
-        /// The SID of the Plex service user.
-        /// </summary>
-        private string serviceUserSid;
-
-        /// <summary>
         /// The Plex service.
         /// </summary>
         private ServerService plexService = null;
@@ -239,9 +234,12 @@ namespace TE.Plex
         /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
         /// when provided with the <see cref="UpdateMessageHandler"/>.
         /// </summary>
+        /// <param name="handler">
+        /// The log message handler.
+        /// </param>
         public MediaServer(UpdateMessageHandler handler)
         {
-            UpdateMessage += handler;
+            UpdateMessage += handler ?? throw new ArgumentNullException(nameof(handler));
             Initialize(false);
         }
 
@@ -250,6 +248,9 @@ namespace TE.Plex
         /// when provided with the value indicating if the install is to be
         /// silent.
         /// </summary>
+        /// <param name="isSilent">
+        /// Value indicating the installation is to be silent.
+        /// </param>
         public MediaServer(bool isSilent)
         {
             Initialize(isSilent);
@@ -260,9 +261,15 @@ namespace TE.Plex
         /// when provided with the value indicating if the install is to be
         /// silent and the <see cref="UpdateMessageHandler"/>.
         /// </summary>
+        /// <param name="isSilent">
+        /// Value indicating the installation is to be silent.
+        /// </param>
+        /// <param name="handler">
+        /// The log message handler.
+        /// </param>
         public MediaServer(bool isSilent, UpdateMessageHandler handler)
         {
-            UpdateMessage += handler;
+            UpdateMessage += handler ?? throw new ArgumentNullException(nameof(handler));
             Initialize(isSilent);
         }
         #endregion
@@ -307,45 +314,16 @@ namespace TE.Plex
         /// </summary>
         /// <returns>
         /// The full path to the latest installation package that has been
-        /// downloaded.
+        /// downloaded or <c>null</c> if the package could not be determined.
         /// </returns>
         private string GetLatestInstallPackage()
         {
-            if (UpdateMessage == null)
-            {
-                Log.Write("UpdateMessage is null.");
-            }
             OnUpdateMessage($"Verify the updates folder is specified.");
             if (string.IsNullOrEmpty(UpdatesFolder))
             {
                 OnUpdateMessage(
                     "The Plex updates folder was not specified.");
-                return string.Empty;
-            }
-
-            // Get the unique user SID for the Plex service user
-            serviceUserSid = plexService.LogOnUser.Sid;
-
-            string token = plexRegistry.GetToken();
-            if (token == null)
-            {
-                OnUpdateMessage("Could not get the latest install package.");
-                return string.Empty;
-            }
-
-            Package availableVersion = new Package(
-                LocalDataFolder, 
-                UpdateChannel,
-                token);
-            availableVersion.MessageChanged += Message_Changed;
-
-            if (availableVersion != null)
-            {
-                bool result = availableVersion.Download().Result;
-                if (!result)
-                {
-                    OnUpdateMessage("The latest available installation could not be downloaded.");
-                }
+                return null;
             }
 
             OnUpdateMessage($"Verify the updates folder, {UpdatesFolder} exists.");
@@ -353,53 +331,36 @@ namespace TE.Plex
             {
                 OnUpdateMessage(
                     $"The Plex updates folder, {UpdatesFolder} could not be found.");
-                return string.Empty;
+                return null;
             }
 
-            OnUpdateMessage("Checking to see if updates folder exists.");
-            if (!Directory.EnumerateFileSystemEntries(UpdatesFolder).Any())
+            string token = plexRegistry.GetToken();
+            if (token == null)
             {
-                OnUpdateMessage("Updates folder does not exist. Looks like a new install.");
-                return string.Empty;
+                OnUpdateMessage("Could not get the latest install package.");
+                return null;
             }
 
-            OnUpdateMessage("Getting the latest update folder.");
-            DirectoryInfo latestFolder =
-                new DirectoryInfo(UpdatesFolder).GetDirectories()
-                    .OrderByDescending(d => d.LastWriteTimeUtc).FirstOrDefault();
+            // Create the Plex installation package object
+            Package availableVersion = new Package(
+                UpdatesFolder, 
+                UpdateChannel,
+                token);
+            availableVersion.MessageChanged += Message_Changed;
 
-            if (latestFolder == null)
+            if (availableVersion != null)
             {
-                OnUpdateMessage("Couldn't get the latest update folder.");
-                return string.Empty;
+                // Download the latest package for Plex
+                bool result = availableVersion.Download().Result;
+                if (!result)
+                {
+                    OnUpdateMessage("The latest available installation could not be downloaded.");
+                    return null;
+                }
             }
 
-            OnUpdateMessage("Checking for the latest Plex packages folder.");
-            string packagesFullPath =
-                Path.Combine(latestFolder.FullName, PlexPackagesFolder);
-
-            if (!Directory.Exists(packagesFullPath))
-            {
-                OnUpdateMessage(
-                    $"The latest Plex packages folder {packagesFullPath} could not be found.");
-                return string.Empty;
-            }
-
-            DirectoryInfo packagesFolder = new DirectoryInfo(packagesFullPath);
-
-            OnUpdateMessage("Get the latest packages file.");
-            FileInfo file = packagesFolder.GetFiles()
-                .OrderByDescending(f => f.LastWriteTime)
-                .FirstOrDefault();
-
-            if (file == null)
-            {
-                OnUpdateMessage("Couldn't get the latest packages file.");
-                return string.Empty;
-            }
-
-            OnUpdateMessage($"Latest packages file: {file.FullName}");
-            return file.FullName;
+            OnUpdateMessage($"Latest packages file: {availableVersion.FilePath}");
+            return availableVersion.FilePath;
         }
 
         /// <summary>

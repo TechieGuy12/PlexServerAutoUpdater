@@ -76,7 +76,7 @@ namespace TE.Plex.Update
         /// <summary>
         /// The local application data folder for Plex.
         /// </summary>
-        private string _localAppDataFolder;
+        private string _updatesFolder;
 
         /// <summary>
         /// The update channel used to update Plex.
@@ -94,6 +94,13 @@ namespace TE.Plex.Update
         /// Gets the latest Windows version of the Plex Media Server.
         /// </summary>
         public SystemType LatestWindowsVersion { get; private set; }
+
+        /// <summary>
+        /// Gets the path to the installation file once it has been downloaded
+        /// from the Plex server. This value remains null, unless the <see cref="Download"/>
+        /// method is called, and the file has been downloaded successfully.
+        /// </summary>
+        public string FilePath { get; private set; } = null;
         #endregion
 
         #region Constructors
@@ -114,12 +121,12 @@ namespace TE.Plex.Update
         /// An argument provided is <c>null</c>.
         /// </exception>
         public Package(
-            string localAppDataFolder,
+            string updatesFolder,
             UpdateChannel updateChannel,
             string token)
         {
-            _localAppDataFolder =
-                localAppDataFolder ?? throw new ArgumentNullException(nameof(localAppDataFolder));
+            _updatesFolder =
+               updatesFolder ?? throw new ArgumentNullException(nameof(updatesFolder));
             _updateChannel = updateChannel;
             _token = token ?? throw new ArgumentNullException(nameof(token));
         }
@@ -251,7 +258,7 @@ namespace TE.Plex.Update
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(_localAppDataFolder))
+                if (string.IsNullOrWhiteSpace(_updatesFolder))
                 {
                     return null;
                 }
@@ -267,8 +274,8 @@ namespace TE.Plex.Update
                 }
 
                 return Path.Combine(
-                    _localAppDataFolder, 
-                    $@"Plex Media Server\Updates\{LatestWindowsVersion.Version}\packages");
+                    _updatesFolder, 
+                    $@"{LatestWindowsVersion.Version}\packages");
             }
             catch (Exception ex)
                 when (ex is ArgumentException || ex is System.Security.SecurityException)
@@ -417,27 +424,28 @@ namespace TE.Plex.Update
                 return false;
             }
 
-            string filePath = GetFullPath();
-            if (string.IsNullOrEmpty(filePath))
+            FilePath = GetFullPath();
+            if (string.IsNullOrEmpty(FilePath))
             {
                 OnMessageChanged(
                     "The path to the local downloaded install file could not be determined.");
                 return false;
             }
 
-            string directory = Path.GetDirectoryName(filePath);
+            string directory = Path.GetDirectoryName(FilePath);
             if (!Directory.Exists(directory))
             {
                 OnMessageChanged($"Creating folder: {directory}.");
+                //TODO: Exception handling for directory creation
                 Directory.CreateDirectory(directory);
             }
             else
             {
                 // If the directory already exists, check to see if the file
                 // also exists
-                if (File.Exists(filePath))
+                if (File.Exists(FilePath))
                 {
-                    OnMessageChanged($"The file, {filePath}, exists. Checking to see if the package is valid.");
+                    OnMessageChanged($"The file, {FilePath}, exists. Checking to see if the package is valid.");
                     // If the file is valid - meaning the checksum matches the
                     // checksum of the file to be downloaded, then return true
                     // to avoid redownloading the same file a second time
@@ -465,7 +473,7 @@ namespace TE.Plex.Update
                     {
                         // Write the stream to the local file path
                         using (Stream streamToWriteTo =
-                            File.Open(filePath, FileMode.Create))
+                            File.Open(FilePath, FileMode.Create))
                         {
                             await streamToReadFrom.CopyToAsync(streamToWriteTo);
                         }

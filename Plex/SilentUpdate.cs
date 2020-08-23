@@ -160,7 +160,7 @@ namespace TE.Plex
         {
             try
             {
-                _server = new MediaServer(true, ServerUpdateMessage);
+                _server = new MediaServer(ServerUpdateMessage);
                 _timer = new Timer(DefaultWaitTime * 1000);
                 _timer.Elapsed += OnTimedEvent;
                 _timer.Enabled = false;

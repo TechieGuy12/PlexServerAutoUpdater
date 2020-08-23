@@ -207,11 +207,6 @@ namespace TE.Plex
         public UpdateChannel UpdateChannel { get; private set; }
 
         /// <summary>
-        /// Gets or sets the flag indicating the installation is silent.
-        /// </summary>
-        public bool IsSilent { get; set; }
-
-        /// <summary>
         /// Gets the current play count from the server.
         /// </summary>
         public int PlayCount { get; private set; }
@@ -228,7 +223,7 @@ namespace TE.Plex
         /// </summary>
         public MediaServer()
         {
-            Initialize(false);
+            Initialize();
         }
 
         /// <summary>
@@ -241,37 +236,7 @@ namespace TE.Plex
         public MediaServer(UpdateMessageHandler handler)
         {
             UpdateMessage += handler ?? throw new ArgumentNullException(nameof(handler));
-            Initialize(false);
-        }
-
-        /// <summary>
-        /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
-        /// when provided with the value indicating if the install is to be
-        /// silent.
-        /// </summary>
-        /// <param name="isSilent">
-        /// Value indicating the installation is to be silent.
-        /// </param>
-        public MediaServer(bool isSilent)
-        {
-            Initialize(isSilent);
-        }
-
-        /// <summary>
-        /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
-        /// when provided with the value indicating if the install is to be
-        /// silent and the <see cref="UpdateMessageHandler"/>.
-        /// </summary>
-        /// <param name="isSilent">
-        /// Value indicating the installation is to be silent.
-        /// </param>
-        /// <param name="handler">
-        /// The log message handler.
-        /// </param>
-        public MediaServer(bool isSilent, UpdateMessageHandler handler)
-        {
-            UpdateMessage += handler ?? throw new ArgumentNullException(nameof(handler));
-            Initialize(isSilent);
+            Initialize();
         }
         #endregion
 
@@ -464,7 +429,7 @@ namespace TE.Plex
         /// The Plex Media Server service local applicaiton data folder could
         /// not be found.
         /// </exception>
-        private void Initialize(bool isSilent)
+        private void Initialize()
         {
             if (IsInstalled())
             {
@@ -472,7 +437,6 @@ namespace TE.Plex
                     "The Plex Media Server is not installed.");
             }
 
-            IsSilent = isSilent;
             CurrentVersion = new Version(0, 0, 0, 0);
             LatestVersion = new Version(0, 0, 0, 0);
             InstallFolder = GetInstallPath();

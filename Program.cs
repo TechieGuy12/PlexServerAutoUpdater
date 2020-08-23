@@ -36,7 +36,7 @@ namespace TE.Plex
         /// Program entry point.
         /// </summary>
         [STAThread]
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
             // redirect console output to parent process;
             // must be before any calls to Console.WriteLine()
@@ -56,21 +56,22 @@ namespace TE.Plex
                 // Check if the user running this application is an administrator
                 if (!user.IsAdministrator())
                 {
+                    string message = "This application must be run from an administrative account.";
+
                     if (!isSilent)
                     {
-                        string message = "This application must be run from an administrative account.";
-
                         // If the user is not an administrator, then exit
                         MessageBox.Show(
                             message,
                             "Plex Server Updater",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Stop);
-
-                        Log.Write(message);
                     }
 
-                    Exit(ERROR_ACCESS_DENIED);
+                    Log.Write(message);
+
+                    ExitCode = ERROR_ACCESS_DENIED;
+                    return ERROR_ACCESS_DENIED;
                 }
             }
             catch (Exception ex)
@@ -82,11 +83,12 @@ namespace TE.Plex
                         "Plex Server Updater",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Stop);
-
-                    Log.Write(ex);
                 }
 
-                Exit(-1);
+                Log.Write(ex);
+
+                ExitCode = 1;
+                return 1;
             }
 
             if (isSilent)
@@ -110,11 +112,22 @@ namespace TE.Plex
                     silentUpdate.ForceUpdate = isForceUpdate;
                     silentUpdate.WaitTime = waitTime;
                     silentUpdate.Run();
-                    Exit(ERROR_SUCCESS);
+
+                    if (silentUpdate.IsPlexRunning())
+                    {
+                        ExitCode = ERROR_SUCCESS;
+                        return ERROR_SUCCESS;
+                    }
+                    else
+                    {
+                        ExitCode = 1;
+                        return 1;
+                    }
                 }
                 catch
                 {
-                    Exit(-1);
+                    ExitCode = 1;
+                    return 1;
                 }
             }
             else
@@ -135,6 +148,9 @@ namespace TE.Plex
                         Log.Write("Displaying the update window.");
                         Application.Run(mainForm);
                     }
+
+                    ExitCode = ERROR_SUCCESS;
+                    return ERROR_SUCCESS;
                 }
                 catch (Exception ex)
                 {
@@ -145,6 +161,9 @@ namespace TE.Plex
                         MessageBoxIcon.Stop);
 
                     Log.Write(ex);
+
+                    ExitCode = 1;
+                    return 1;
                 }
             }
         }

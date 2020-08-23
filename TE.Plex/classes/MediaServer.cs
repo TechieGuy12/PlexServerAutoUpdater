@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Msi = TE.LocalSystem.Msi;
 using TE.Plex.Update;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace TE.Plex
 {
@@ -34,6 +36,17 @@ namespace TE.Plex
         /// The last play count value.
         /// </param>
         public delegate void PlayCountChangedHandler(object sender, int playCount);
+
+        /// <summary>
+        /// The delegate for the in progress recording count changed event.
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="inProgressRecordingCount">
+        /// The last in progress recording count value.
+        /// </param>
+        public delegate void InProgressRecordingCountChangedHandler(object sender, int inProgressRecordingCount);
         #endregion
 
         #region Events
@@ -46,6 +59,11 @@ namespace TE.Plex
         /// Occurs whenever the play count changes.
         /// </summary>
         public event PlayCountChangedHandler PlayCountChanged;
+
+        /// <summary>
+        /// Occurs whenever the in progress recording count changes.
+        /// </summary>
+        public event InProgressRecordingCountChangedHandler InProgressRecordingCountChanged;
 
         /// <summary>
         /// Invoke the UpdateMessage event; called whenever a message is
@@ -70,9 +88,20 @@ namespace TE.Plex
         {
             PlayCountChanged?.Invoke(this, playCount);
         }
+
+        /// <summary>
+        /// Invoke the InProgressRecordingCountChanged event; called whenever the in progress recording count changes.
+        /// </summary>
+        /// <param name="inProgressRecordingCount">
+        /// The latest in progress recording count value;
+        /// </param>
+        protected virtual void OnInProgressRecordingCountChanged(int inProgressRecordingCount)
+        {
+            InProgressRecordingCountChanged?.Invoke(this, inProgressRecordingCount);
+        }
         #endregion
 
-        #region Private Constants		
+        #region Private Constants
         /// <summary>
         /// The DisplayName of the Plex Media Server installation.
         /// </summary>
@@ -89,7 +118,12 @@ namespace TE.Plex
         /// The registry run key that starts Plex Media Server at Windows
         /// startup.
         /// </summary>
-        private const string RegistryRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run\Plex Media Server";
+        private const string RegistryRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        /// <summary>
+        /// The registry value that starts Plex Media Server at Windows 
+        /// startup.
+        /// </summary>
+        private const string RegistryRunValue = "Plex Media Server";
         /// <summary>
         /// The name of the local Plex data path registry value.
         /// </summary>
@@ -119,24 +153,26 @@ namespace TE.Plex
         /// </summary>
         private const string PlexInstallLogFile = "PlexMediaServerInstall.log";
         /// <summary>
-        /// Plex Media Server message log file name.
-        /// </summary>
-        private const string PlexMessageLogFile = "PlexMediaServerMessage.log";
-        /// <summary>
         /// Maxiumum path length.
         /// </summary>
         private const int MaxPathSize = 256;
         #endregion
 
-        #region Private Variables	
+        #region Private Variables
         /// <summary>
         /// The SID of the Plex service user.
         /// </summary>
         private string serviceUserSid;
+
         /// <summary>
         /// The Plex service.
         /// </summary>
         private ServerService plexService = null;
+
+        /// <summary>
+        /// The HTTP client used to connect to the Plex website.
+        /// </summary>
+        private HttpClient httpClient = new HttpClient();
         #endregion
 
         #region Properties
@@ -180,6 +216,11 @@ namespace TE.Plex
         /// Gets the current play count from the server.
         /// </summary>
         public int PlayCount { get; private set; }
+
+        /// <summary>
+        /// Gets the current in progress recording count from the server.
+        /// </summary>
+        public int InProgressRecordingCount { get; private set; }
         #endregion
 
         #region Constructors
@@ -193,11 +234,32 @@ namespace TE.Plex
 
         /// <summary>
         /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
+        /// when provided with the <see cref="UpdateMessageHandler"/>.
+        /// </summary>
+        public MediaServer(UpdateMessageHandler handler)
+        {
+            UpdateMessage += handler;
+            Initialize(false);
+        }
+
+        /// <summary>
+        /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
         /// when provided with the value indicating if the install is to be
         /// silent.
-        /// </summary>		
+        /// </summary>
         public MediaServer(bool isSilent)
         {
+            Initialize(isSilent);
+        }
+
+        /// <summary>
+        /// Creates an instance of the <see cref="TE.Plex.MediaServer"/> class
+        /// when provided with the value indicating if the install is to be
+        /// silent and the <see cref="UpdateMessageHandler"/>.
+        /// </summary>
+        public MediaServer(bool isSilent, UpdateMessageHandler handler)
+        {
+            UpdateMessage += handler;
             Initialize(isSilent);
         }
         #endregion
@@ -214,7 +276,7 @@ namespace TE.Plex
         /// </param>
         private void Message_Changed(object sender, string message)
         {
-            Log.Write(message);
+            OnUpdateMessage(message);
         }
         #endregion
 
@@ -235,45 +297,6 @@ namespace TE.Plex
             Version converted = null;
             Version.TryParse(version, out converted);
             return converted;
-        }
-
-        /// <summary>
-        /// Delete the Plex Server run keys for both the user that performed
-        /// the installation, and the user associated with the Plex Service.
-        /// </summary>
-        private void DeleteRunKey()
-        {
-            OnUpdateMessage("Deleting Run keys in registry.");
-
-            try
-            {
-                // Delete the run keys from the registry for the current user
-                Registry.CurrentUser.DeleteSubKeyTree(RegistryRunKey);
-
-                if (!string.IsNullOrEmpty(serviceUserSid))
-                {
-                    // Delete the run keys from the registry for the user
-                    // associated with the Plex service
-                    Registry.Users.DeleteSubKeyTree(
-                        $"{serviceUserSid}\\{RegistryRunKey}");
-                }
-            }
-            catch (ArgumentException)
-            {
-                OnUpdateMessage("The run key in the registry doesn't have a valid subkey.");
-            }
-            catch (IOException)
-            {
-                OnUpdateMessage("Couldn't delete the run key from the registry because there was an I/O problem.");
-            }
-            catch (System.Security.SecurityException)
-            {
-                OnUpdateMessage("The user does not have permission to delete the run key in the registry.");
-            }
-            catch (UnauthorizedAccessException)
-            {
-                OnUpdateMessage("The user does not have the necessary registry rights.");
-            }
         }
 
         /// <summary>
@@ -330,7 +353,11 @@ namespace TE.Plex
         /// </returns>
         private string GetLatestInstallPackage()
         {
-            Log.Write($"Verify the updates folder is specified.");
+            if (UpdateMessage == null)
+            {
+                Log.Write("UpdateMessage is null.");
+            }
+            OnUpdateMessage($"Verify the updates folder is specified.");
             if (string.IsNullOrEmpty(UpdatesFolder))
             {
                 OnUpdateMessage(
@@ -341,8 +368,17 @@ namespace TE.Plex
             // Get the unique user SID for the Plex service user
             serviceUserSid = plexService.LogOnUser.Sid;
 
-            LatestAvailableVersion availableVersion = new LatestAvailableVersion(
+            string token = GetToken(
                 $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+            if (token == null)
+            {
+                OnUpdateMessage("Could not get the latest install package.");
+                return string.Empty;
+            }
+
+            LatestAvailableVersion availableVersion = new LatestAvailableVersion(
+                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}",
+                token);
             availableVersion.MessageChanged += Message_Changed;
 
             if (availableVersion != null)
@@ -350,11 +386,11 @@ namespace TE.Plex
                 bool result = availableVersion.Download().Result;
                 if (!result)
                 {
-                    Log.Write("The latest available installation could not be downloaded.");
+                    OnUpdateMessage("The latest available installation could not be downloaded.");
                 }
             }
 
-            Log.Write($"Verify the updates folder, {UpdatesFolder} exists.");
+            OnUpdateMessage($"Verify the updates folder, {UpdatesFolder} exists.");
             if (!Directory.Exists(UpdatesFolder))
             {
                 OnUpdateMessage(
@@ -362,25 +398,25 @@ namespace TE.Plex
                 return string.Empty;
             }
 
-            Log.Write("Checking to see if updates folder exists.");
+            OnUpdateMessage("Checking to see if updates folder exists.");
             if (!Directory.EnumerateFileSystemEntries(UpdatesFolder).Any())
             {
-                Log.Write("Updates folder does not exist. Looks like a new install.");
+                OnUpdateMessage("Updates folder does not exist. Looks like a new install.");
                 return string.Empty;
             }
 
-            Log.Write("Getting the latest update folder.");
+            OnUpdateMessage("Getting the latest update folder.");
             DirectoryInfo latestFolder =
                 new DirectoryInfo(UpdatesFolder).GetDirectories()
                     .OrderByDescending(d => d.LastWriteTimeUtc).FirstOrDefault();
 
             if (latestFolder == null)
             {
-                Log.Write("Couldn't get the latest update folder.");
+                OnUpdateMessage("Couldn't get the latest update folder.");
                 return string.Empty;
             }
 
-            Log.Write("Checking for the latest Plex packages folder.");
+            OnUpdateMessage("Checking for the latest Plex packages folder.");
             string packagesFullPath =
                 Path.Combine(latestFolder.FullName, PlexPackagesFolder);
 
@@ -393,18 +429,18 @@ namespace TE.Plex
 
             DirectoryInfo packagesFolder = new DirectoryInfo(packagesFullPath);
 
-            Log.Write("Get the latest packages file.");
+            OnUpdateMessage("Get the latest packages file.");
             FileInfo file = packagesFolder.GetFiles()
                 .OrderByDescending(f => f.LastWriteTime)
                 .FirstOrDefault();
 
             if (file == null)
             {
-                Log.Write("Couldn't get the latest packages file.");
+                OnUpdateMessage("Couldn't get the latest packages file.");
                 return string.Empty;
             }
 
-            Log.Write($"Latest packages file: {file.FullName}");
+            OnUpdateMessage($"Latest packages file: {file.FullName}");
             return file.FullName;
         }
 
@@ -437,7 +473,7 @@ namespace TE.Plex
             {
                 // Get the Plex local data folder from the users registry hive
                 // for the user ID associated with the Plex service
-                Log.Write("Get the local data folder for Plex.");
+                OnUpdateMessage("Get the local data folder for Plex.");
                 folder = Registry.GetValue(
                     $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}",
                     RegistryPlexDataPathValueName,
@@ -453,12 +489,12 @@ namespace TE.Plex
                 // Default to the standard local application data folder
                 // for the Plex service user is the LocalAppDataPath value
                 // is missing from the registry
-                Log.Write(
+                OnUpdateMessage(
                     "Couldn't find the local data folder in the registry, so defaulting to the logged in user's local application data folder.");
                 folder = plexService.LogOnUser.LocalAppDataFolder;
             }
 
-            Log.Write($"Plex local data folder: {folder}");
+            OnUpdateMessage($"Plex local data folder: {folder}");
             return folder;
         }
 
@@ -549,7 +585,7 @@ namespace TE.Plex
                 GetVersionFromFile(
                     Path.Combine(InstallFolder, PlexExecutable)));
 
-            // Get the latest Plex Media Server version that has been 
+            // Get the latest Plex Media Server version that has been
             // downloaded
             LatestInstallPackage = GetLatestInstallPackage();
             if (!string.IsNullOrEmpty(LatestInstallPackage))
@@ -616,6 +652,7 @@ namespace TE.Plex
 
             GetVersions();
             PlayCount = GetPlayCount();
+            InProgressRecordingCount = GetInProgressRecordingCount();
         }
 
         /// <summary>
@@ -629,14 +666,14 @@ namespace TE.Plex
             return ((Msi.InstalledProduct.Enumerate()
                      .Where(product => product.DisplayName == DisplayName)).Any());
         }
-
+       
         /// <summary>
         /// Run the Plex Media Server installation.
         /// </summary>
         private void RunInstall()
         {
-            Log.Write("Starting Plex installation.");
-            Log.Write("Delete any previous installation logs.");
+            OnUpdateMessage("Starting Plex installation.");
+            OnUpdateMessage("Delete any previous installation logs.");
             string logFile = GetInstallLogFilePath();
             if (File.Exists(logFile))
             {
@@ -647,12 +684,12 @@ namespace TE.Plex
                 LatestInstallPackage,
                 PlexInstallParameters + logFile);
 
-            Log.Write("Run Plex installation.");
+            OnUpdateMessage("Run Plex installation.");
             using (Process install = Process.Start(startInfo))
             {
                 install.WaitForExit();
             }
-            Log.Write("Plex install has finished.");
+            OnUpdateMessage("Plex install has finished.");
         }
 
         /// <summary>
@@ -663,7 +700,7 @@ namespace TE.Plex
         /// </param>
         private void StopProcess(string processName)
         {
-            Log.Write($"Stopping {processName} processes.");
+            OnUpdateMessage($"Stopping {processName} processes.");
 
             // Drop the extension from the filename to get the process without
             // using the file extension
@@ -700,6 +737,63 @@ namespace TE.Plex
 
         #region Public Functions
         /// <summary>
+        /// Delete the Plex Server run keys for both the user that performed
+        /// the installation, and the user associated with the Plex Service.
+        /// </summary>
+        public void DeleteRunKey()
+        {
+            OnUpdateMessage("Deleting Run keys in registry.");
+
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RegistryRunKey, true))
+                {
+                    if (key != null)
+                    {
+                        if (key.GetValue(RegistryRunValue) == null)
+                        {
+                            OnUpdateMessage("The run value in the registry doesn't exist, so Plex won't start at Windows startup.");
+                            return;
+                        }
+
+                        try
+                        {
+                            key.DeleteValue(RegistryRunValue);
+                            if (key.GetValue(RegistryRunValue) == null)
+                            {
+                                OnUpdateMessage("The run value in the registry doesn't exist, so Plex won't start at Windows startup.");
+                            }
+                        }
+                        catch (ArgumentException)
+                        {
+                            OnUpdateMessage("The run value in the registry doesn't exist, so Plex won't start at Windows startup.");
+                        }                        
+                    }
+                }
+            }
+            catch (ArgumentException)
+            {
+                OnUpdateMessage("The run key in the registry doesn't exist.");
+            }
+            catch (IOException)
+            {
+                OnUpdateMessage("Couldn't delete the run key from the registry because there was an I/O problem.");
+            }
+            catch (System.Security.SecurityException)
+            {
+                OnUpdateMessage("The user does not have permission to delete the run key in the registry.");
+            }
+            catch (ObjectDisposedException)
+            {
+                OnUpdateMessage("The registry key was closed, so the 'Run' value could not be deleted from the registry.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                OnUpdateMessage("The user does not have the necessary registry rights.");
+            }
+        }
+
+        /// <summary>
         /// Gets the full path to the installation log file.
         /// </summary>
         /// <returns>
@@ -707,7 +801,7 @@ namespace TE.Plex
         /// </returns>
         public string GetInstallLogFilePath()
         {
-            Log.Write("Setting the installation log path.");
+            OnUpdateMessage("Setting the installation log path.");
             string logFolder = Environment.GetFolderPath(
                     Environment.SpecialFolder.CommonApplicationData);
 
@@ -728,26 +822,9 @@ namespace TE.Plex
             }
 
             string logPath = Path.Combine(installLogFolder, PlexInstallLogFile);
-            Log.Write($"Installation log path: {logPath}.");
+            OnUpdateMessage($"Installation log path: {logPath}.");
 
             return logPath;
-        }
-
-        /// <summary>
-        /// Gets the full path to the message log file.
-        /// </summary>
-        /// <returns>
-        /// The message log file path.
-        /// </returns>
-        public string GetMessageLogFilePath()
-        {
-            // Create the log file path
-            string logFolder = Path.Combine(
-                Environment.GetFolderPath(
-                    Environment.SpecialFolder.CommonApplicationData),
-                PlexInstallLogFolder);
-
-            return Path.Combine(logFolder, PlexMessageLogFile);
         }
 
         /// <summary>
@@ -764,7 +841,7 @@ namespace TE.Plex
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                Log.Write("The token could not be found.");
+                OnUpdateMessage("The token could not be found.");
                 return playCount;
             }
 
@@ -778,12 +855,39 @@ namespace TE.Plex
         }
 
         /// <summary>
+        /// Gets the number of in progress recordings (i.e. by the DVR) on the Plex server.
+        /// </summary>
+        /// <returns>
+        /// The current in progress recording count or -1 if the count could not be determined.
+        /// </returns>
+        public int GetInProgressRecordingCount()
+        {
+            int inProgressRecordingCount = Api.Unknown;
+            string token = GetToken(
+                $"{RegistryUsersRoot}\\{serviceUserSid}{RegistryPlexKey}");
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                OnUpdateMessage("The token could not be found.");
+                return inProgressRecordingCount;
+            }
+
+            Api plexApi = new Api("localhost", token);
+            plexApi.MessageChanged += Message_Changed;
+
+            inProgressRecordingCount = plexApi.GetInProgressRecordingCount();
+            OnInProgressRecordingCountChanged(inProgressRecordingCount);
+
+            return inProgressRecordingCount;
+        }
+
+        /// <summary>
         /// Gets the Plex token for the logged in Plex user.
         /// </summary>
         /// <returns>
         /// A Plex token or null if the token could not be retrieved.
         /// </returns>
-        public static string GetToken(string plexRegistryKey)
+        public string GetToken(string plexRegistryKey)
         {
             try
             {
@@ -795,17 +899,38 @@ namespace TE.Plex
             catch (Exception ex)
                 when (ex is IOException || ex is System.Security.SecurityException || ex is ArgumentException)
             {
-                Log.Write($"ERROR: The Plex token could not be retrieved from the registry. Reason: {ex.Message}");
+                OnUpdateMessage($"ERROR: The Plex token could not be retrieved from the registry. Reason: {ex.Message}");
                 return null;
             }
 
         }
 
         /// <summary>
+        /// Gets the value indicating if the Plex server is running.
+        /// </summary>
+        /// <returns>
+        /// True if the Plex server is running, false if the Plex server is not
+        /// running.
+        /// </returns>
+        public bool IsRunning()
+        {
+            try
+            {
+                HttpResponseMessage checkingResponse = 
+                    httpClient.GetAsync("http://localhost:32400/web/index.html").GetAwaiter().GetResult();
+                return checkingResponse.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+                when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                return false;
+            }
+        }
+        /// <summary>
         /// Indicates if a new update is available.
         /// </summary>
         /// <returns>
-        /// True if an update is available, or false if there is no update 
+        /// True if an update is available, or false if there is no update
         /// available.
         /// </returns>
         public bool IsUpdateAvailable()
@@ -829,7 +954,7 @@ namespace TE.Plex
                 "PlexTranscoder.exe"
             };
 
-            Log.Write("Stopping the Plex Media Server processes.");
+            OnUpdateMessage("Stopping the Plex Media Server processes.");
             for (int i = 0; i <= processes.Length - 1; i++)
             {
                 StopProcess(processes[i]);
@@ -864,6 +989,9 @@ namespace TE.Plex
                 RunInstall();
                 OnUpdateMessage("END: Running update.");
 
+                OnUpdateMessage("START: Deleting Plex Run registry keys.");
+                DeleteRunKey();
+                OnUpdateMessage("END: Deleting Plex Run registry keys.");
                 GetVersions();
             }
             catch

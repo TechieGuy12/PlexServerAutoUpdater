@@ -48,6 +48,15 @@ namespace TE.Plex
         /// <summary>
         /// Initializes an instance of the <see cref="SilentUpdate"/> class.
         /// </summary>
+        /// <exception cref="AppNotInstalledException">
+        /// Plex is not installed.
+        /// </exception>
+        /// <exception cref="ServiceNotInstalledException">
+        /// The Plex service is not installed.
+        /// </exception>
+        /// <exception cref="WindowsUserSidNotFound">
+        /// The Windows user SID is not found.
+        /// </exception>
         public SilentUpdate()
         {
             Initialize();
@@ -156,6 +165,15 @@ namespace TE.Plex
         /// <summary>
         /// Initializes the properties and variables for the class.
         /// </summary>
+        /// <exception cref="AppNotInstalledException">
+        /// Plex is not installed.
+        /// </exception>
+        /// <exception cref="ServiceNotInstalledException">
+        /// The Plex service is not installed.
+        /// </exception>
+        /// <exception cref="WindowsUserSidNotFound">
+        /// The Windows user SID is not found.
+        /// </exception>
         private void Initialize()
         {
             try
@@ -169,23 +187,23 @@ namespace TE.Plex
             {
                 Log.Write(
                     "The Plex Media Server is not installed.");
-                return;
+                throw;
             }
             catch (ServiceNotInstalledException)
             {
                 Log.Write(
                     "The Plex Media Server service is not installed.");
-                return;
+                throw;
             }
             catch (WindowsUserSidNotFound ex)
             {
                 Log.Write(ex.Message);
-                return;
+                throw;
             }
             catch (Exception ex)
             {
                 Log.Write(ex);
-                return;
+                throw;
             }
         }
 

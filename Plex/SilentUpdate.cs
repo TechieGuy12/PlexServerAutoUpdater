@@ -59,7 +59,27 @@ namespace TE.Plex
         /// </exception>
         public SilentUpdate()
         {
-            Initialize();
+            Initialize(null);
+        }
+
+        /// <summary>
+        /// Initializes an instance of the <see cref="SilentUpdate"/> class.
+        /// </summary>
+        /// <param name="logPath">
+        /// Specifies a path to the installation log.
+        /// </param>
+        /// <exception cref="AppNotInstalledException">
+        /// Plex is not installed.
+        /// </exception>
+        /// <exception cref="ServiceNotInstalledException">
+        /// The Plex service is not installed.
+        /// </exception>
+        /// <exception cref="WindowsUserSidNotFound">
+        /// The Windows user SID is not found.
+        /// </exception>
+        public SilentUpdate(string logPath)
+        {
+            Initialize(logPath);
         }
         #endregion
 
@@ -174,11 +194,11 @@ namespace TE.Plex
         /// <exception cref="WindowsUserSidNotFound">
         /// The Windows user SID is not found.
         /// </exception>
-        private void Initialize()
+        private void Initialize(string logPath)
         {
             try
-            {
-                _server = new MediaServer(ServerUpdateMessage);
+            {                
+                _server = new MediaServer(logPath, ServerUpdateMessage);
                 _timer = new Timer(DefaultWaitTime * 1000);
                 _timer.Elapsed += OnTimedEvent;
                 _timer.Enabled = false;

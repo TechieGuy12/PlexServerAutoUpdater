@@ -129,6 +129,11 @@ namespace TE.Plex
 
         #region Private Variables
         /// <summary>
+        /// The user-specified log path.
+        /// </summary>
+        private string _logPath;
+
+        /// <summary>
         /// The Plex service.
         /// </summary>
         private ServerService plexService = null;
@@ -220,6 +225,23 @@ namespace TE.Plex
         /// </param>
         public MediaServer(MessageChangedEventHandler handler)
         {
+            MessageChanged += handler ?? throw new ArgumentNullException(nameof(handler));
+            Initialize();
+        }
+
+        /// <summary>
+        /// Creates an instance of the <see cref="MediaServer"/> class
+        /// when provided with the <see cref="UpdateMessageHandler"/>.
+        /// </summary>
+        /// <param name="logPath">
+        /// Path to the installation log file.
+        /// </param>
+        /// <param name="handler">
+        /// The log message handler.
+        /// </param>
+        public MediaServer(string logPath, MessageChangedEventHandler handler)
+        {
+            _logPath = logPath;
             MessageChanged += handler ?? throw new ArgumentNullException(nameof(handler));
             Initialize();
         }
@@ -597,7 +619,27 @@ namespace TE.Plex
             try
             {
                 OnMessageChanged("Setting the installation log path.");
-                string logPath = Path.Combine(Path.GetTempPath(), PlexInstallLogFile);
+                string defaultPath = Path.Combine(Path.GetTempPath(), PlexInstallLogFile);
+                string logPath = defaultPath;
+                if (!string.IsNullOrWhiteSpace(_logPath))
+                {
+                    try
+                    {
+                        logPath = Path.GetFullPath(_logPath);
+
+                        string directory = Path.GetDirectoryName(logPath);
+                        if (!Directory.Exists(directory))
+                        {
+                            Directory.CreateDirectory(directory);
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        OnMessageChanged($"Could not use the specified log path '{_logPath}', so using default path of '{defaultPath}'. Reason: {ex.Message}");
+                        logPath = defaultPath;
+                    }
+                }
                 OnMessageChanged($"Installation log path: {logPath}.");
 
                 return logPath;

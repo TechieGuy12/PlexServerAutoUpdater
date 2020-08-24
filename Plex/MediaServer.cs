@@ -640,6 +640,8 @@ namespace TE.Plex
                         logPath = defaultPath;
                     }
                 }
+
+                logPath = Path.Combine(logPath, PlexInstallLogFile);
                 OnMessageChanged($"Installation log path: {logPath}.");
 
                 return logPath;

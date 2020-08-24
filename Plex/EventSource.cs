@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TE.Plex
 {
-    public class PlexClassBase
+    public class EventSource
     {
         #region Event Delegates
         /// <summary>

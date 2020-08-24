@@ -14,7 +14,7 @@ namespace TE.Plex
     /// Contains the methods used to get the Plex data values from the Windows
     /// registry.
     /// </summary>
-    internal class Registry : PlexClassBase
+    internal class Registry : EventSource
     {
         /// <summary>
         /// The registry key tree for the Plex information.

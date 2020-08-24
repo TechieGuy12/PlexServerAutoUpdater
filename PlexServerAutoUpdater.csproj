@@ -84,11 +84,10 @@
     <Compile Include="LocalSystem\Msi\MsiException.cs" />
     <Compile Include="LocalSystem\WindowsUserSidNotFound.cs" />
     <Compile Include="LocalSystem\WinApi.cs" />
-    <Compile Include="Plex\ComponentBase.cs" />
-    <Compile Include="Plex\Defs.cs" />
+    <Compile Include="Plex\EventSource.cs" />
     <Compile Include="Plex\Registry.cs" />
     <Compile Include="Plex\Update\CurrentVersion.cs" />
-    <Compile Include="Plex\Update\LatestAvailableVersion.cs" />
+    <Compile Include="Plex\Update\Package.cs" />
     <Compile Include="Plex\Update\Release.cs" />
     <Compile Include="Plex\Update\SystemType.cs" />
     <Compile Include="Plex\Api.cs" />

@@ -31,7 +31,7 @@ namespace TE.Plex
     /// <summary>
     /// Description of MediaServer.
     /// </summary>
-    public class MediaServer : PlexClassBase
+    public class MediaServer : EventSource
     {
         #region Delegates
         /// <summary>

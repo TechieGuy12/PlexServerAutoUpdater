@@ -15,7 +15,7 @@ namespace TE.Plex.Update
     /// Properties and methods for downloading the latest version of the Plex
     /// Media Server for Windows.
     /// </summary>
-    public class Package : PlexClassBase
+    public class Package : EventSource
     {
         #region Private Constants
         /// <summary>
@@ -407,9 +407,16 @@ namespace TE.Plex.Update
             string directory = Path.GetDirectoryName(FilePath);
             if (!Directory.Exists(directory))
             {
-                OnMessageChanged($"Creating folder: {directory}.");
-                //TODO: Exception handling for directory creation
-                Directory.CreateDirectory(directory);
+                try
+                {
+                    OnMessageChanged($"Creating folder: {directory}.");
+                    Directory.CreateDirectory(directory);
+                }
+                catch (Exception ex)
+                {
+                    OnMessageChanged($"Could not create download folder. Reason: {ex.Message}");
+                    return false;
+                }
             }
             else
             {

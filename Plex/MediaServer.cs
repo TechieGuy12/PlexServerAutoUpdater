@@ -348,7 +348,7 @@ namespace TE.Plex
                 string path = Path.Combine(location, PlexExecutable);
                 if (File.Exists(path))
                 {
-                    installPath = path;
+                    installPath = Path.GetDirectoryName(path);
                     break;
                 }
             }

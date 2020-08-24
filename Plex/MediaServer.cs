@@ -169,17 +169,27 @@ namespace TE.Plex
         /// <summary>
         /// Gets the currently installed version of Plex Media Server.
         /// </summary>
-        public Version CurrentVersion { get; private set; }
+        public Version CurrentVersion { get; private set; } = new Version(0, 0, 0, 0);
 
         /// <summary>
         /// Gets the latest downloaded version of Plex Media Server.
         /// </summary>
-        public Version LatestVersion { get; private set; }
+        public Version LatestVersion { get; private set; } = new Version(0, 0, 0, 0);
 
         /// <summary>
         /// Gets the update channel used to update Plex.
         /// </summary>
         public UpdateChannel UpdateChannel { get; private set; }
+
+        /// <summary>
+        /// Gets the string name of the update channel.
+        /// </summary>
+        public string UpdateChannelName {
+            get
+            {
+                return UpdateChannel == UpdateChannel.PlexPass ? "Plex Pass" : "Public";
+            }
+        }
 
         /// <summary>
         /// Gets the current play count from the server.
@@ -241,8 +251,8 @@ namespace TE.Plex
         /// </returns>
         private Package GetLatestInstallPackage()
         {
-            OnMessageChanged($"Verify the updates folder is specified.");
-            if (string.IsNullOrEmpty(UpdatesFolder))
+            OnMessageChanged("Verify the updates folder is specified.");
+            if (string.IsNullOrWhiteSpace(UpdatesFolder))
             {
                 OnMessageChanged(
                     "The Plex updates folder was not specified.");
@@ -323,9 +333,6 @@ namespace TE.Plex
         /// <returns>
         /// The installation path of Plex Media Server.
         /// </returns>
-        /// <exception cref="AppNotInstalledException">
-        /// The Plex Media Server is not installed.
-        /// </exception>
         private string GetInstallPath()
         {
             string installPath = null;
@@ -346,6 +353,30 @@ namespace TE.Plex
                 }
             }
 
+            // If the install path does not contain a value, then if the Plex
+            // Media Server is running, let's try and get the path from the
+            // process
+            if (string.IsNullOrWhiteSpace(installPath))
+            {
+                try
+                {
+                    Process[] processes = Process.GetProcessesByName(PlexExecutable);
+                    if (processes.Length > 0)
+                    {
+                        string filePath = processes[0].MainModule.FileName;
+                        installPath = Path.GetDirectoryName(filePath);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Let's just swallow the execption as it isn't necessary
+                    // since there is still another method of getting the
+                    // the install path for Plex, so just set the path to 
+                    // null
+                    installPath = null;
+                }
+            }
+
             // If the install path does not contain a value, then use the
             // Windows Installer API to find the Plex server install path
             if (string.IsNullOrWhiteSpace(installPath))
@@ -360,6 +391,18 @@ namespace TE.Plex
                     {
                         installPath = Path.GetDirectoryName(installPath);
                     }
+                }
+            }
+
+            // If an install path has been found, then do one last check to
+            // verify the directory exists before return the path
+            if (!string.IsNullOrWhiteSpace(installPath))
+            {
+                // If the directory does not exist, then set the instsall path
+                // to null as it doesn't appear to be valid
+                if (!Directory.Exists(installPath))
+                {
+                    installPath = null;
                 }
             }
 
@@ -412,9 +455,13 @@ namespace TE.Plex
                     "The Plex Media Server is not installed.");
             }
 
-            CurrentVersion = new Version(0, 0, 0, 0);
-            LatestVersion = new Version(0, 0, 0, 0);
             InstallFolder = GetInstallPath();
+            if (string.IsNullOrWhiteSpace(InstallFolder))
+            {
+                throw new AppNotInstalledException(
+                    "Plex does not appear to be installed as the Plex installation folder could not be determined.");
+            }
+            OnMessageChanged($"Plex install folder: {InstallFolder}.");
 
             // Populate a service object with information about the Plex
             // service
@@ -433,14 +480,19 @@ namespace TE.Plex
             {
                 throw new PlexDataFolderNotFoundException(
                     "The Plex local application data folder could not be found for the Plex Windows account.");
-            }            
+            }
+            OnMessageChanged($"Plex local data folder: {LocalDataFolder}.");
 
             UpdatesFolder =
                 Path.Combine(LocalDataFolder, PlexUpdatesFolder);
+            OnMessageChanged($"Updates folder: {UpdatesFolder}.");
 
             UpdateChannel = plexRegistry.GeUpdateChannel();
+            OnMessageChanged($"Update channel: {UpdateChannelName}.");
 
             GetVersions();
+            OnMessageChanged($"Current version: {CurrentVersion}.");
+            OnMessageChanged($"Lastest version: {LatestVersion}.");
 
             PlayCount = GetPlayCount();
             InProgressRecordingCount = GetInProgressRecordingCount();

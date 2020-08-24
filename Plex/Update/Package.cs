@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -521,13 +518,13 @@ namespace TE.Plex.Update
                 }
                 else
                 {
-                    return default(Version);
+                    return default;
                 }
             }
             catch (Exception ex)
                 when (ex is ArgumentOutOfRangeException || ex is RegexMatchTimeoutException)
             {
-                return default(Version);
+                return default;
             }
         }
 

@@ -300,8 +300,10 @@ namespace TE.Plex.Update
                 if (url == null)
                 {
                     return null;
-                }
+                }                
 
+                OnMessageChanged($"Sending request to Plex: {url}");
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
                 using (HttpResponseMessage response = _client.GetAsync(url).Result)
                 {
                     content = response.Content.ReadAsStringAsync().Result;
@@ -311,14 +313,19 @@ namespace TE.Plex.Update
             }
             catch (HttpRequestException ex)
             {
-                OnMessageChanged($"Could not get Plex package information. Message: {ex.Message}.");
+                OnMessageChanged($"Could not get Plex package information. Message: {ex.Message}");
                 return null;
             }
             catch (AggregateException ae)
             {
                 foreach (var e in ae.Flatten().InnerExceptions)
                 {
-                    OnMessageChanged($"Could not get Plex package information. Message: {e.Message}.");                    
+                    OnMessageChanged($"Could not get Plex package information. Message: {e.Message}");
+
+                    if (e.InnerException != null)
+                    {
+                        OnMessageChanged($"Additional information: {e.InnerException.Message}");
+                    }
                 }
                 return null;
             }

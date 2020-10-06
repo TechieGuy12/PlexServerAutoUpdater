@@ -514,7 +514,7 @@ namespace TE.Plex
 
             GetVersions();
             OnMessageChanged($"Current version: {CurrentVersion}.");
-            OnMessageChanged($"Lastest version: {LatestVersion}.");
+            OnMessageChanged($"Latest version: {LatestVersion}.");
 
             PlayCount = GetPlayCount();
             InProgressRecordingCount = GetInProgressRecordingCount();

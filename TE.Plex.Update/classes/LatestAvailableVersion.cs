@@ -355,6 +355,7 @@ namespace TE.Plex.Update
                     return null;
                 }
 
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
                 using (HttpResponseMessage response = _client.GetAsync(url).Result)
                 {
                     content = response.Content.ReadAsStringAsync().Result;

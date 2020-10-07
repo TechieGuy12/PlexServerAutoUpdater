@@ -303,7 +303,6 @@ namespace TE.Plex.Update
                 }                
 
                 OnMessageChanged($"Sending request to Plex: {url}");
-                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
                 using (HttpResponseMessage response = _client.GetAsync(url).Result)
                 {
                     content = response.Content.ReadAsStringAsync().Result;

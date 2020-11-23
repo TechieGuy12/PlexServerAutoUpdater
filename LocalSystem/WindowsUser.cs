@@ -109,7 +109,7 @@ namespace TE.LocalSystem
 
             try
             {
-                if (string.IsNullOrEmpty(Name))
+                if (string.IsNullOrWhiteSpace(Name))
                 {
                     // If no Windows user name is specified, just get the identity
                     // for the current user
@@ -145,7 +145,7 @@ namespace TE.LocalSystem
         private string GetLocalAppDataFolder()
         {
             // Check to ensure a SID value for the user is set			
-            if (string.IsNullOrEmpty(Sid))
+            if (string.IsNullOrWhiteSpace(Sid))
             {
                 throw new WindowsUserSidNotFound(
                     "The SID for the user was not specified.");
@@ -153,15 +153,15 @@ namespace TE.LocalSystem
 
             try
             {
-                // Get the local application data folder path for the user
-                return Registry.GetValue(
-                $"{RegistryUsersRoot}\\{Sid}\\{RegistryLocalAppDataKey}",
-                RegistryLocalAppDataValueName,
-                string.Empty).ToString();
+                using (RegistryKey localAppDataRegistry =
+                        Registry.Users.OpenSubKey($"{Sid}\\{RegistryLocalAppDataKey}"))
+                {
+                    return (string)localAppDataRegistry.GetValue(RegistryLocalAppDataValueName);
+                }
             }
             catch
             {
-                return string.Empty;
+                return null;
             }
 
         }
@@ -175,7 +175,7 @@ namespace TE.LocalSystem
         private string GetSid()
         {
             // Verify that the username was provided
-            if (string.IsNullOrEmpty(Name))
+            if (string.IsNullOrWhiteSpace(Name))
             {
                 return string.Empty;
             }
@@ -194,8 +194,8 @@ namespace TE.LocalSystem
             }
             catch (IdentityNotMappedException)
             {
-                // If the identity could not be mapped, just return an empty string
-                return string.Empty;
+                // If the identity could not be mapped, return null
+                return null;
             }
         }
 
@@ -208,7 +208,7 @@ namespace TE.LocalSystem
         private string GetSidApi()
         {
             // Verify that the username was provided
-            if (string.IsNullOrEmpty(Name))
+            if (string.IsNullOrWhiteSpace(Name))
             {
                 return string.Empty;
             }
@@ -266,9 +266,8 @@ namespace TE.LocalSystem
                         ref cchReferencedDomainName,
                         out sidUse))
                     {
-                        // Return an empty string if the SID could not be
-                        // retrieved
-                        return string.Empty;
+                        // Return null if the SID could not be retrieved
+                        return null;
                     }
                 }
             }
@@ -276,9 +275,8 @@ namespace TE.LocalSystem
             // account name
             else
             {
-                // Return an empty string if the SID could not be
-                // retrieved
-                return string.Empty;
+                // Return null if the SID could not be retrieved
+                return null;
             }
 
             // No error occurred
@@ -292,7 +290,7 @@ namespace TE.LocalSystem
                 {
                     // Return an empty string if the SID could not be
                     // retrieved
-                    return string.Empty;
+                    return null;
                 }
                 else
                 {
@@ -308,9 +306,8 @@ namespace TE.LocalSystem
             }
             else
             {
-                // Return an empty string if the SID could not be
-                // retrieved
-                return string.Empty;
+                // Return null if the SID could not be retrieved
+                return null;
             }
         }
 
@@ -323,13 +320,13 @@ namespace TE.LocalSystem
         private string GetSidRegistry()
         {
             // Verify that the username was provided
-            if (string.IsNullOrEmpty(Name))
+            if (string.IsNullOrWhiteSpace(Name))
             {
-                return string.Empty;
+                return null;
             }
 
             // Default to a blank SID
-            string sid = string.Empty;
+            string sid = null;
 
             // Remove the domain name from the Windows user name
             string name = RemoveDomainFromName(Name);
@@ -376,9 +373,9 @@ namespace TE.LocalSystem
         private string GetSidKnown()
         {
             // Verify that the username was provided
-            if (string.IsNullOrEmpty(Name))
+            if (string.IsNullOrWhiteSpace(Name))
             {
-                return string.Empty;
+                return null;
             }
 
             // Remove the domain name from the Windows user name
@@ -416,7 +413,7 @@ namespace TE.LocalSystem
             }
             catch
             {
-                return string.Empty;
+                return null;
             }
         }
 
@@ -431,7 +428,7 @@ namespace TE.LocalSystem
             Name = name;
             userIdentity = GetIdentity();
 
-            if (string.IsNullOrEmpty(Name))
+            if (string.IsNullOrWhiteSpace(Name))
             {
                 Name = (userIdentity == null) ? WindowsIdentity.GetCurrent().Name : Name = userIdentity.Name;
             }
@@ -442,19 +439,19 @@ namespace TE.LocalSystem
 
             // If the the account name doesn't match a well-known account,
             // then try to find the SID for the account
-            if (string.IsNullOrEmpty(Sid))
+            if (string.IsNullOrWhiteSpace(Sid))
             {
                 Sid = GetSid();
 
                 // If no SID was returned, try to get the SID using the
                 // Windows API
-                if (string.IsNullOrEmpty(Sid))
+                if (string.IsNullOrWhiteSpace(Sid))
                 {
                     Sid = GetSidApi();
 
                     // If still no SID was returned, try to find it in the
                     // registry
-                    if (string.IsNullOrEmpty(Sid))
+                    if (string.IsNullOrWhiteSpace(Sid))
                     {
                         Sid = GetSidRegistry();
                     }

@@ -18,18 +18,28 @@ namespace TE
         /// </summary>
         private const string LogFileName = "plex-updater.txt";
 
+        private static string _defaultFolder;
+
         /// <summary>
         /// Gets the the full path to the log file.
         /// </summary>
         public static string FilePath { get; private set; }
 
         /// <summary>
+        /// Gets the folder to the log file.
+        /// </summary>
+        public static string Folder { get; private set; }
+
+        /// <summary>
         /// Initializes an instance of the <see cref="Log"/> class.
         /// </summary>
         static Log()
         {
+            _defaultFolder = Path.GetTempPath();
+            Folder = _defaultFolder;
+
             // Set the full path to the log file
-            FilePath = Path.Combine(Path.GetTempPath(), LogFileName);
+            FilePath = Path.Combine(Folder, LogFileName);
         }
 
         /// <summary>
@@ -49,6 +59,34 @@ namespace TE
         public static void Delete()
         {
             File.Delete(FilePath);
+        }
+
+        /// <summary>
+        /// Sets the full path to the log file.
+        /// </summary>
+        /// <param name="path">
+        /// The full path to the log file.
+        /// </param>
+        public static void SetFolder(string path)
+        {
+            try
+            {
+                // Call this to validate the path
+                Path.GetFullPath(path);
+
+                Folder = Path.GetDirectoryName(path);
+                if (!Directory.Exists(Folder))
+                {
+                    Directory.CreateDirectory(Folder);
+                }
+
+                FilePath = Path.Combine(Folder, LogFileName);
+            }
+            catch
+            {
+                Folder = _defaultFolder;
+                FilePath = Path.Combine(Folder, LogFileName);
+            }
         }
 
         /// <summary>

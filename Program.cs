@@ -43,9 +43,13 @@ namespace TE.Plex
             AttachConsole(ATTACH_PARENT_PROCESS);
 
             Arguments arguments = new Arguments(args);
-            Log.Delete();
+            
 
             bool isSilent = (arguments["silent"] != null);
+            string logPath = arguments["log"];
+
+            Log.SetFolder(logPath);
+            Log.Delete();
 
             try
             {
@@ -108,7 +112,7 @@ namespace TE.Plex
 
                     // Run the update silently
                     Log.Write("Initializing the silent update.");
-                    SilentUpdate silentUpdate = new SilentUpdate();
+                    SilentUpdate silentUpdate = new SilentUpdate(Log.Folder);
                     silentUpdate.ForceUpdate = isForceUpdate;
                     silentUpdate.WaitTime = waitTime;
                     silentUpdate.Run();

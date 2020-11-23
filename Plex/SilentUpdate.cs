@@ -48,9 +48,38 @@ namespace TE.Plex
         /// <summary>
         /// Initializes an instance of the <see cref="SilentUpdate"/> class.
         /// </summary>
+        /// <exception cref="AppNotInstalledException">
+        /// Plex is not installed.
+        /// </exception>
+        /// <exception cref="ServiceNotInstalledException">
+        /// The Plex service is not installed.
+        /// </exception>
+        /// <exception cref="WindowsUserSidNotFound">
+        /// The Windows user SID is not found.
+        /// </exception>
         public SilentUpdate()
         {
-            Initialize();
+            Initialize(null);
+        }
+
+        /// <summary>
+        /// Initializes an instance of the <see cref="SilentUpdate"/> class.
+        /// </summary>
+        /// <param name="logPath">
+        /// Specifies a path to the installation log.
+        /// </param>
+        /// <exception cref="AppNotInstalledException">
+        /// Plex is not installed.
+        /// </exception>
+        /// <exception cref="ServiceNotInstalledException">
+        /// The Plex service is not installed.
+        /// </exception>
+        /// <exception cref="WindowsUserSidNotFound">
+        /// The Windows user SID is not found.
+        /// </exception>
+        public SilentUpdate(string logPath)
+        {
+            Initialize(logPath);
         }
         #endregion
 
@@ -156,11 +185,20 @@ namespace TE.Plex
         /// <summary>
         /// Initializes the properties and variables for the class.
         /// </summary>
-        private void Initialize()
+        /// <exception cref="AppNotInstalledException">
+        /// Plex is not installed.
+        /// </exception>
+        /// <exception cref="ServiceNotInstalledException">
+        /// The Plex service is not installed.
+        /// </exception>
+        /// <exception cref="WindowsUserSidNotFound">
+        /// The Windows user SID is not found.
+        /// </exception>
+        private void Initialize(string logPath)
         {
             try
-            {
-                _server = new MediaServer(true, ServerUpdateMessage);
+            {                
+                _server = new MediaServer(logPath, ServerUpdateMessage);
                 _timer = new Timer(DefaultWaitTime * 1000);
                 _timer.Elapsed += OnTimedEvent;
                 _timer.Enabled = false;
@@ -169,23 +207,23 @@ namespace TE.Plex
             {
                 Log.Write(
                     "The Plex Media Server is not installed.");
-                return;
+                throw;
             }
             catch (ServiceNotInstalledException)
             {
                 Log.Write(
                     "The Plex Media Server service is not installed.");
-                return;
+                throw;
             }
             catch (WindowsUserSidNotFound ex)
             {
                 Log.Write(ex.Message);
-                return;
+                throw;
             }
             catch (Exception ex)
             {
                 Log.Write(ex);
-                return;
+                throw;
             }
         }
 
@@ -238,7 +276,6 @@ namespace TE.Plex
                 {
                     Log.Write("No update is available. Exiting.");                
                 }
-                _server.DeleteRunKey();
             }
             catch (Exception ex)
             {

@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.Win32;
 using Newtonsoft.Json;
 
 namespace TE.Plex.Update
@@ -16,53 +12,8 @@ namespace TE.Plex.Update
     /// Properties and methods for downloading the latest version of the Plex
     /// Media Server for Windows.
     /// </summary>
-    public class LatestAvailableVersion
+    public class Package : EventSource
     {
-        #region Event Delegates
-        /// <summary>
-        /// The delegate for the Message event handler.
-        /// </summary>
-        /// <param name="sender">
-        /// The object that triggered the event.
-        /// </param>
-        /// <param name="message">
-        /// The message.
-        /// </param>
-        public delegate void MessageChangedEventHandler(object sender, string messagee);
-        #endregion
-
-        #region Events
-        /// <summary>
-        /// The MessageChanged event member.
-        /// </summary>
-        public event MessageChangedEventHandler MessageChanged;
-
-        /// <summary>
-        /// Triggered when the message has changed.
-        /// </summary>
-        protected virtual void OnMessageChanged(string message)
-        {
-            MessageChanged?.Invoke(this, message);
-        }
-        #endregion
-
-        #region Private Enumerations
-        /// <summary>
-        /// The type of installation package.
-        /// </summary>
-        private enum PackageType
-        {
-            /// <summary>
-            /// Public released package.
-            /// </summary>
-            Public = 0,
-            /// <summary>
-            /// Plex Pass-only package.
-            /// </summary>
-            PlexPass = 8
-        }
-        #endregion
-
         #region Private Constants
         /// <summary>
         /// The public URL to the JSON data that contains information about the
@@ -92,9 +43,14 @@ namespace TE.Plex.Update
         private HttpClient _client = new HttpClient();
 
         /// <summary>
-        /// The Plex user's registry key.
+        /// The local application data folder for Plex.
         /// </summary>
-        private string _plexUserRegistryKey;
+        private string _updatesFolder;
+
+        /// <summary>
+        /// The update channel used to update Plex.
+        /// </summary>
+        private UpdateChannel _updateChannel;
 
         /// <summary>
         /// The Plex user's token.
@@ -107,23 +63,41 @@ namespace TE.Plex.Update
         /// Gets the latest Windows version of the Plex Media Server.
         /// </summary>
         public SystemType LatestWindowsVersion { get; private set; }
+
+        /// <summary>
+        /// Gets the path to the installation file once it has been downloaded
+        /// from the Plex server. This value remains null, unless the <see cref="Download"/>
+        /// method is called, and the file has been downloaded successfully.
+        /// </summary>
+        public string FilePath { get; private set; } = null;
         #endregion
 
         #region Constructors
         /// <summary>
-        /// Creates an instance of the <see cref="LatestAvailableVersion"/> class
+        /// Creates an instance of the <see cref="Package"/> class
         /// when provided with the Plex user's registry key and the user's token.
         /// </summary>
-        /// <param name="plexUserRegistryKey">
-        /// The Plex user's registry key.
+        /// <param name="localAppDataFolder">
+        /// The local application data folder for Plex.
+        /// </param>
+        /// <param name="updateChannel">
+        /// The update channel used to update Plex.
         /// </param>
         /// <param name="token">
         /// The Plex user's token.
         /// </param>
-        public LatestAvailableVersion(string plexUserRegistryKey, string token)
+        /// <exception cref="ArgumentNullException">
+        /// An argument provided is <c>null</c>.
+        /// </exception>
+        public Package(
+            string updatesFolder,
+            UpdateChannel updateChannel,
+            string token)
         {
-            _plexUserRegistryKey = plexUserRegistryKey;
-            _token = token;
+            _updatesFolder =
+               updatesFolder ?? throw new ArgumentNullException(nameof(updatesFolder));
+            _updateChannel = updateChannel;
+            _token = token ?? throw new ArgumentNullException(nameof(token));
         }
         #endregion
 
@@ -135,7 +109,8 @@ namespace TE.Plex.Update
         /// The full path to the file.
         /// </param>
         /// <returns>
-        /// The checksum for the file.
+        /// The checksum for the file or <c>null</c> if the checksum could not
+        /// be determined.
         /// </returns>
         private string GetChecksum(string filePath)
         {
@@ -176,9 +151,10 @@ namespace TE.Plex.Update
         /// Gets the filename for the latest install file.
         /// </summary>
         /// <returns>
-        /// The filename of the latest install file.
+        /// The filename of the latest install file or <c>null</c> if the latest
+        /// install file could not be determined.
         /// </returns>
-        private string GetPackageFileName()
+        private string GetFileName()
         {
             if (LatestWindowsVersion == null)
             {
@@ -211,10 +187,10 @@ namespace TE.Plex.Update
         /// Gets the full local path for the install package.
         /// </summary>
         /// <returns>
-        /// The full path for the install package, or null if the full path
-        /// could not be determined.
+        /// The full path for the install package, or <c>null</c> if the full
+        /// path could not be determined.
         /// </returns>
-        private string GetPackageFullPath()
+        private string GetFullPath()
         {
             if (LatestWindowsVersion == null)
             {
@@ -223,7 +199,7 @@ namespace TE.Plex.Update
 
             // Get the local path for the latest install and verify the folder
             // exists
-            string folder = GetPackagePath();
+            string folder = GetPath();
             if (string.IsNullOrEmpty(folder))
             {
                 return null;
@@ -231,7 +207,7 @@ namespace TE.Plex.Update
 
             // Get the full path to the latest install and then verify the file
             // exists
-            string name = GetPackageFileName();
+            string name = GetFileName();
             if (string.IsNullOrEmpty(name))
             {
                 return null;
@@ -244,36 +220,35 @@ namespace TE.Plex.Update
         /// Gets the download package local path.
         /// </summary>
         /// <returns>
-        /// The downloaded package local path or null if the path could not
+        /// The downloaded package local path or <c>null</c> if the path could not
         /// be determined.
         /// </returns>
-        private string GetPackagePath()
+        private string GetPath()
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(_updatesFolder))
+                {
+                    return null;
+                }
+
                 if (LatestWindowsVersion == null)
                 {
                     return null;
                 }
 
-                string version = LatestWindowsVersion.Version;
-                string appPath = (string)Registry.GetValue(
-                    _plexUserRegistryKey,
-                    "LocalAppDataPath",
-                    null);
-
-                if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(appPath))
+                if (string.IsNullOrWhiteSpace(LatestWindowsVersion.Version))
                 {
-                    OnMessageChanged($"The registry value from '{_plexUserRegistryKey}\\LocalAppDataPath' could not be retrieved. Verify that the registry value exists.");
                     return null;
                 }
 
-                return Path.Combine(appPath, $@"Plex Media Server\Updates\{version}\packages");
+                return Path.Combine(
+                    _updatesFolder, 
+                    $@"{LatestWindowsVersion.Version}\packages");
             }
             catch (Exception ex)
-                when (ex is IOException || ex is System.Security.SecurityException)
+                when (ex is ArgumentException || ex is System.Security.SecurityException)
             {
-                OnMessageChanged($"The registry value from '{_plexUserRegistryKey}\\LocalAppDataPath' could not be retrieved. Reason: {ex.Message}");
                 return null;
             }
         }
@@ -286,37 +261,9 @@ namespace TE.Plex.Update
         /// The URL for the specified update channel package, or the public URL
         /// if the URL could not be determined.
         /// </returns>
-        private string GetPackageUrl()
+        private string GetUrl()
         {
-            string value = null;
-            try
-            {
-                value = (string)Registry.GetValue(
-                    _plexUserRegistryKey,
-                    "ButlerUpdateChannel",
-                    null);
-            }
-            catch (Exception ex)
-                when (ex is System.Security.SecurityException || ex is IOException)
-            {
-                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' could not be retrieved. Reason: {ex.Message}");
-                return PlexPackageJsonUrl;
-            }
-
-            if (value == null)
-            {
-                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' could not be retrieved. Defaulting to the Public Plex update.");
-                return PlexPackagePublicJsonUrl;
-            }
-
-            int updateChannel;
-            if (!int.TryParse(value, out updateChannel))
-            {
-                OnMessageChanged($"WARN: The registry value from '{_plexUserRegistryKey}\\ButlerUpdateChannel' needs to be an numeric value, and it was '{value}' instead. Defaulting to the Public Plex update");
-                return PlexPackagePublicJsonUrl;
-            }
-
-            if (updateChannel == (int)PackageType.PlexPass)
+            if (_updateChannel == UpdateChannel.PlexPass)
             {
                 OnMessageChanged("The update channel is set for Plex Pass.");
                 return PlexPackageJsonUrl + PlexPackageJsonUrlBeta;
@@ -336,7 +283,7 @@ namespace TE.Plex.Update
         /// The JSON string value if the request was successful, or null if
         /// the request was not successful.
         /// </returns>
-        private string GetPlexPackageJson()
+        private string GetJson()
         {
             string content;
 
@@ -349,13 +296,13 @@ namespace TE.Plex.Update
             {
                 // Get the URL for the package specified by the update channel
                 // set in the Plex server
-                string url = GetPackageUrl();
+                string url = GetUrl();
                 if (url == null)
                 {
                     return null;
-                }
+                }                
 
-                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+                OnMessageChanged($"Sending request to Plex: {url}");
                 using (HttpResponseMessage response = _client.GetAsync(url).Result)
                 {
                     content = response.Content.ReadAsStringAsync().Result;
@@ -365,14 +312,19 @@ namespace TE.Plex.Update
             }
             catch (HttpRequestException ex)
             {
-                OnMessageChanged($"Could not get Plex package information. Message: {ex.Message}.");
+                OnMessageChanged($"Could not get Plex package information. Message: {ex.Message}");
                 return null;
             }
             catch (AggregateException ae)
             {
                 foreach (var e in ae.Flatten().InnerExceptions)
                 {
-                    OnMessageChanged($"Could not get Plex package information. Message: {e.Message}.");                    
+                    OnMessageChanged($"Could not get Plex package information. Message: {e.Message}");
+
+                    if (e.InnerException != null)
+                    {
+                        OnMessageChanged($"Additional information: {e.InnerException.Message}");
+                    }
                 }
                 return null;
             }
@@ -384,7 +336,7 @@ namespace TE.Plex.Update
         private void Initialize()
         {
             OnMessageChanged("Checking for the latest version from Plex.");
-            string json = GetPlexPackageJson();
+            string json = GetJson();
 
             if (string.IsNullOrEmpty(json))
             {
@@ -447,27 +399,35 @@ namespace TE.Plex.Update
                 return false;
             }
 
-            string filePath = GetPackageFullPath();
-            if (string.IsNullOrEmpty(filePath))
+            FilePath = GetFullPath();
+            if (string.IsNullOrEmpty(FilePath))
             {
                 OnMessageChanged(
                     "The path to the local downloaded install file could not be determined.");
                 return false;
             }
 
-            string directory = Path.GetDirectoryName(filePath);
+            string directory = Path.GetDirectoryName(FilePath);
             if (!Directory.Exists(directory))
             {
-                OnMessageChanged($"Creating folder: {directory}.");
-                Directory.CreateDirectory(directory);
+                try
+                {
+                    OnMessageChanged($"Creating folder: {directory}.");
+                    Directory.CreateDirectory(directory);
+                }
+                catch (Exception ex)
+                {
+                    OnMessageChanged($"Could not create download folder. Reason: {ex.Message}");
+                    return false;
+                }
             }
             else
             {
                 // If the directory already exists, check to see if the file
                 // also exists
-                if (File.Exists(filePath))
+                if (File.Exists(FilePath))
                 {
-                    OnMessageChanged($"The file, {filePath}, exists. Checking to see if the package is valid.");
+                    OnMessageChanged($"The file, {FilePath}, exists. Checking to see if the package is valid.");
                     // If the file is valid - meaning the checksum matches the
                     // checksum of the file to be downloaded, then return true
                     // to avoid redownloading the same file a second time
@@ -495,7 +455,7 @@ namespace TE.Plex.Update
                     {
                         // Write the stream to the local file path
                         using (Stream streamToWriteTo =
-                            File.Open(filePath, FileMode.Create))
+                            File.Open(FilePath, FileMode.Create))
                         {
                             await streamToReadFrom.CopyToAsync(streamToWriteTo);
                         }
@@ -528,14 +488,14 @@ namespace TE.Plex.Update
                 Initialize();
                 if (LatestWindowsVersion == null)
                 {
-                    return default(Version);
+                    return default;
                 }                
             }
 
             string version = LatestWindowsVersion.Version;
             if (string.IsNullOrEmpty(version))
             {
-                return default(Version);
+                return default;
             }
 
             // The regular expression used to parse the file version
@@ -564,13 +524,13 @@ namespace TE.Plex.Update
                 }
                 else
                 {
-                    return default(Version);
+                    return default;
                 }
             }
             catch (Exception ex)
                 when (ex is ArgumentOutOfRangeException || ex is RegexMatchTimeoutException)
             {
-                return default(Version);
+                return default;
             }
         }
 
@@ -593,7 +553,7 @@ namespace TE.Plex.Update
 
             // Get the local path for the latest install and verify the folder
             // exists            
-            string folder = GetPackagePath();
+            string folder = GetPath();
             if (string.IsNullOrEmpty(folder))
             {
                 OnMessageChanged("The package folder could not be determined.");
@@ -609,7 +569,7 @@ namespace TE.Plex.Update
 
             // Get the full path to the latest install and then verify the file
             // exists
-            string name = GetPackageFileName();
+            string name = GetFileName();
             if (string.IsNullOrEmpty(name))
             {
                 OnMessageChanged(

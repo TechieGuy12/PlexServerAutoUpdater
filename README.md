@@ -42,8 +42,9 @@ You have a few options on how Plex is updated when media is streaming:
 4. When running the update silently (using the -silent parameter), you can specify the -force parameter to force the update.
 
 ## Log File Location
+The default log location is: %TEMP%\plex-updater.txt. Any installation log files are also stored in %TEMP%.
 
-    %LOCALAPPDATA%\Temp\plex-updater.txt
+If the -log parameter is specified on the command line with a valid directory, then that directory will be used to store all the log files.
 
 [run as a Windows service]: https://forums.plex.tv/discussion/93994/pms-as-a-service/
 [latest release]: https://github.com/TechieGuy12/PlexServerAutoUpdater/releases/latest

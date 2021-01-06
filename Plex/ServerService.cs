@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management;
 using System.ServiceProcess;
 using TE.LocalSystem;
+using System.Configuration;
 
 namespace TE.Plex
 {
@@ -17,7 +18,7 @@ namespace TE.Plex
         /// <summary>
         /// The name of the Plex service.
         /// </summary>
-        private const string ServiceName = "PlexService";
+        private static string ServiceName = ConfigurationManager.AppSettings["PlexServiceName"];
         #endregion
 
         #region Properties

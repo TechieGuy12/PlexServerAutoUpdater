@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Microsoft.Win32;
 using Msi = TE.LocalSystem.Msi;
 using TE.Plex.Update;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Security;
-using System.Configuration;
 
 namespace TE.Plex
 {
@@ -95,31 +96,31 @@ namespace TE.Plex
         /// <summary>
         /// The DisplayName of the Plex Media Server installation.
         /// </summary>
-        private static string DisplayName = ConfigurationManager.AppSettings["PlexServiceName"];
+        private const string DisplayName = "Plex Media Server";
         /// <summary>
         /// The name of the Plex Media Server executable.
         /// </summary>
-        private static string PlexExecutable = ConfigurationManager.AppSettings["PlexExecutable"];
+        private const string PlexExecutable = "Plex Media Server.exe";
         /// <summary>
         /// The name of the Plex updates folder.
         /// </summary>
-        private static string PlexUpdatesFolder = ConfigurationManager.AppSettings["PlexUpdatesFolder"];
+        private const string PlexUpdatesFolder = @"Plex Media Server\Updates";
         /// <summary>
         /// The name of the installation packages folder.
         /// </summary>
-        private static string PlexPackagesFolder = ConfigurationManager.AppSettings["PlexPackagesFolder"];
+        private const string PlexPackagesFolder = "packages";
         /// <summary>
         /// Plex Media Server installation parameters.
         /// </summary>
-        private static string PlexInstallParameters = ConfigurationManager.AppSettings["PlexInstallParameters"];
+        private const string PlexInstallParameters = "/install /quiet /norestart /log ";
         /// <summary>
         /// Plex Media Server installation log subfolder.
         /// </summary>
-        private static string PlexInstallLogFolder = ConfigurationManager.AppSettings["PlexInstallLogFolder"];
+        private const string PlexInstallLogFolder = @"PlexUpdater";
         /// <summary>
         /// Plex Media Server installation log file name.
         /// </summary>
-        private static string PlexInstallLogFile = ConfigurationManager.AppSettings["PlexInstallLogFile"];
+        private const string PlexInstallLogFile = "PlexMediaServerInstall.log";
         /// <summary>
         /// Maxiumum path length.
         /// </summary>

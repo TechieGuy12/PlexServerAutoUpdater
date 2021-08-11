@@ -499,8 +499,20 @@ namespace TE.Plex
             LocalDataFolder = plexRegistry.GetLocalDataFolder();
             if (string.IsNullOrEmpty(LocalDataFolder))
             {
-                throw new PlexDataFolderNotFoundException(
-                    "The Plex local application data folder could not be found for the Plex Windows account.");
+                try
+                {
+                    LocalDataFolder = ConfigurationManager.AppSettings["PlexLocalAppDataFolder"];
+                }
+                catch
+                {
+                    LocalDataFolder = null;
+                }
+
+                if (string.IsNullOrWhiteSpace(LocalDataFolder))
+                {
+                    throw new PlexDataFolderNotFoundException(
+                        "The Plex local application data folder could not be found for the Plex Windows account.");
+                }
             }
             OnMessageChanged($"Plex local data folder: {LocalDataFolder}.");
 

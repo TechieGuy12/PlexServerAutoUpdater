@@ -548,6 +548,12 @@ namespace TE.Plex
         /// </summary>
         private void RunInstall()
         {
+            if (!File.Exists(LatestInstallPackage.FilePath))
+            {
+                OnMessageChanged("The latest Plex installation package does not exist on the local machine.");
+                return;
+            }
+
             OnMessageChanged("Starting Plex installation.");            
             string logFile = GetInstallLogFilePath();
             if (string.IsNullOrWhiteSpace(logFile))
@@ -566,7 +572,7 @@ namespace TE.Plex
                 LatestInstallPackage.FilePath,
                 PlexInstallParameters + logFile);
 
-            OnMessageChanged("Run Plex installation.");
+            OnMessageChanged($"Run Plex installation - '{startInfo.FileName} {startInfo.Arguments}'.");
             using (Process install = Process.Start(startInfo))
             {
                 install.WaitForExit();

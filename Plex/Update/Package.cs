@@ -604,6 +604,17 @@ namespace TE.Plex.Update
             }
             return isValid;
         }
+
+        /// <summary>
+        /// Returns the string representation for this object.
+        /// </summary>
+        /// <returns>
+        /// The string value.
+        /// </returns>
+        public override string ToString()
+        {
+            return FilePath;
+        }
         #endregion
     }
 }

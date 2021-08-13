@@ -239,7 +239,8 @@ namespace TE.Plex
             }
             catch (Exception ex)
             {
-                Log.Write(ex);
+                Log.Write(ex.Message);
+                Log.Write(ex.StackTrace);
             }
         }
         #endregion
@@ -279,7 +280,8 @@ namespace TE.Plex
             }
             catch (Exception ex)
             {
-                Log.Write(ex);
+                Log.Write(ex.Message);
+                Log.Write(ex.StackTrace);
             }
         }
         #endregion

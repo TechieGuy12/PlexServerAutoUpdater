@@ -570,7 +570,7 @@ namespace TE.Plex
 
             ProcessStartInfo startInfo = new ProcessStartInfo(
                 LatestInstallPackage.FilePath,
-                PlexInstallParameters + logFile);
+                $"{PlexInstallParameters.Trim()} \"{logFile}\"");
 
             OnMessageChanged($"Run Plex installation - '{startInfo.FileName} {startInfo.Arguments}'.");
             using (Process install = Process.Start(startInfo))

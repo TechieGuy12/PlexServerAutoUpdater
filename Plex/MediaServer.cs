@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Security;
 using System.Configuration;
+using System.Runtime.InteropServices;
 
 namespace TE.Plex
 {
@@ -32,6 +33,22 @@ namespace TE.Plex
     /// </summary>
     public class MediaServer : EventSource
     {
+        /// <summary>
+        /// Needed to determine if the Plex Media Server process is 64-bit.
+        /// </summary>
+        /// <param name="hProcess">
+        /// The Plex process handle.
+        /// </param>
+        /// <param name="lpSystemInfo">
+        /// The value indicating if the process is 64-bit.
+        /// </param>
+        /// <returns>
+        /// Returns none-zero if the function succeeds, otherwise zero.
+        /// </returns>
+        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWow64Process([In] IntPtr hProcess, [Out] out bool lpSystemInfo);
+
         #region Delegates
         /// <summary>
         /// The delegate for the play count changed event.
@@ -173,6 +190,11 @@ namespace TE.Plex
         public string InstallFolder { get; private set; }
 
         /// <summary>
+        /// Gets the value indicating if Plex Media Server is 64-bit.
+        /// </summary>
+        public bool Is64Bit { get; private set; }
+
+        /// <summary>
         /// Gets the full path to the latest installation package that has
         /// been downloaded.
         /// </summary>
@@ -307,7 +329,8 @@ namespace TE.Plex
             Package availableVersion = new Package(
                 UpdatesFolder, 
                 UpdateChannel,
-                token);
+                token,
+                Is64Bit);
             availableVersion.MessageChanged += Message_Changed;
 
             if (availableVersion != null)
@@ -369,13 +392,13 @@ namespace TE.Plex
             // To avoid using the Windows Installer API, let's first check well
             // known paths to find the Plex install location
             List<string> defaultLocations = new List<string>();
-            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string programFilesX86 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%");
             if (!string.IsNullOrWhiteSpace(programFilesX86))
             {
                 defaultLocations.Add(Path.Combine(programFilesX86, PlexFolder, PlexSubFolder));
             }
             
-            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string programFiles = Environment.ExpandEnvironmentVariables("%ProgramW6432%");
             if (!string.IsNullOrWhiteSpace(programFiles))
             {
                 defaultLocations.Add(Path.Combine(programFiles, PlexFolder, PlexSubFolder));
@@ -540,6 +563,9 @@ namespace TE.Plex
             UpdateChannel = plexRegistry.GeUpdateChannel();
             OnMessageChanged($"Update channel: {UpdateChannelName}.");
 
+            GetBitness();
+            OnMessageChanged($"64-bit: {Is64Bit}.");
+
             GetVersions();
             OnMessageChanged($"Current version: {CurrentVersion}.");
             OnMessageChanged($"Latest version: {LatestVersion}.");
@@ -636,6 +662,65 @@ namespace TE.Plex
                         process.WaitForExit();
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets the value indicating if the installed version of Plex Media
+        /// Server is 64-bit.
+        /// </summary>
+        private void GetBitness()
+        {
+            Is64Bit = false;
+            if (!Environment.Is64BitOperatingSystem)
+            {
+                return;
+            }
+
+            string programFiles = Environment.ExpandEnvironmentVariables("%ProgramW6432%");
+            if (string.IsNullOrWhiteSpace(programFiles))
+            {
+                return;
+            }
+
+            try
+            {
+                string plexPath = Path.Combine(programFiles, PlexFolder, PlexSubFolder, PlexExecutable);
+                if (File.Exists(plexPath))
+                {
+                    OnMessageChanged($"Plex found in: {plexPath}.");
+                    // Set the flag, but continue to determine if the Plex
+                    // process is also 64-bit to confirm this. We will keep
+                    // this value in case Plex isn't running and we can't
+                    // get the value using the process.
+                    Is64Bit = true;
+                }
+            }
+            catch (Exception ex)
+                when (ex is ArgumentException || ex is ArgumentNullException)
+            {
+                OnMessageChanged($"Couldn't determine if Plex is 64-bit. Treating Plex as 32-bit. Reason: {ex.Message}");
+                return;
+            }
+
+            try
+            {
+                Process[] processes = Process.GetProcessesByName(PlexExecutable);
+                if (processes.Count() > 0)
+                {
+                    bool retVal;
+                    if (!IsWow64Process(Process.GetCurrentProcess().Handle, out retVal))
+                    {
+                        OnMessageChanged($"Couldn't determine if Plex is 64-bit. Treating Plex as 32-bit.");
+                        return;
+                    }
+                    Is64Bit = retVal;
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                OnMessageChanged($"Couldn't determine if Plex is 64-bit. Treating Plex as 32-bit. Reason: {ex.Message}");
+                return;
             }
         }
         #endregion

@@ -120,8 +120,13 @@ namespace TE.Plex
         /// Plex Media Server installation log file name.
         /// </summary>
         private static string PlexInstallLogFile = ConfigurationManager.AppSettings["PlexInstallLogFile"];
-
+        /// <summary>
+        /// The root Plex installation folder.
+        /// </summary>
         private static string PlexFolder = "Plex";
+        /// <summary>
+        /// The subfolder in the Plex installation folder.
+        /// </summary>
         private static string PlexSubFolder = "Plex Media Server";
         /// <summary>
         /// Maxiumum path length.

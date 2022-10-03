@@ -120,6 +120,9 @@ namespace TE.Plex
         /// Plex Media Server installation log file name.
         /// </summary>
         private static string PlexInstallLogFile = ConfigurationManager.AppSettings["PlexInstallLogFile"];
+
+        private static string PlexFolder = "Plex";
+        private static string PlexSubFolder = "Plex Media Server";
         /// <summary>
         /// Maxiumum path length.
         /// </summary>
@@ -361,8 +364,17 @@ namespace TE.Plex
             // To avoid using the Windows Installer API, let's first check well
             // known paths to find the Plex install location
             List<string> defaultLocations = new List<string>();
-            defaultLocations.Add(@"C:\Program Files (x86)\Plex\Plex Media Server");
-            defaultLocations.Add(@"C:\Program Files\Plex\Plex Media Server");
+            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            if (!string.IsNullOrWhiteSpace(programFilesX86))
+            {
+                defaultLocations.Add(Path.Combine(programFilesX86, PlexFolder, PlexSubFolder));
+            }
+            
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            if (!string.IsNullOrWhiteSpace(programFiles))
+            {
+                defaultLocations.Add(Path.Combine(programFiles, PlexFolder, PlexSubFolder));
+            }
 
             foreach (string location in defaultLocations)
             {

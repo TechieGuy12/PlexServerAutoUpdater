@@ -602,22 +602,18 @@ namespace TE.Plex
             }
 
             // Check to see if any processes are still running
-            processes = Process.GetProcessesByName(processName);
+            processes = Process.GetProcessesByName(fileName);
             if (processes.Count() > 0)
             {
-                // Use the nuclear way of killing the processes
-                foreach (Process proc in processes)
+                using (Process process = new Process())
                 {
-                    using (Process process = new Process())
+                    process.StartInfo = new ProcessStartInfo
                     {
-                        process.StartInfo = new ProcessStartInfo
-                        {
-                            FileName = "taskkill.exe",
-                            Arguments = $" /IM {processName} /F"
-                        };
-                        process.Start();
-                        process.WaitForExit();
-                    }
+                        FileName = "taskkill.exe",
+                        Arguments = $"/F /IM \"{processName}\""
+                    };
+                    process.Start();
+                    process.WaitForExit();
                 }
             }
         }

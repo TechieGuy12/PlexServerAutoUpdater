@@ -130,6 +130,10 @@ namespace TE.Plex
         /// </summary>
         private static string PlexInstallParameters = ConfigurationManager.AppSettings["PlexInstallParameters"];
         /// <summary>
+        /// Plex Media Server x64 installation parameters.
+        /// </summary>
+        private static string PlexInstallParametersx64 = ConfigurationManager.AppSettings["PlexInstallParametersx64"];
+        /// <summary>
         /// Plex Media Server installation log subfolder.
         /// </summary>
         private static string PlexInstallLogFolder = ConfigurationManager.AppSettings["PlexInstallLogFolder"];
@@ -611,9 +615,17 @@ namespace TE.Plex
                 File.Delete(logFile);
             }
 
+            // Default to the 32-bit parameter installation, but change to the
+            // 64-bit parameters if the 64-bit version of Plex is installed
+            string parameters = $"{PlexInstallParameters.Trim()} \"{logFile}\"";
+            if (Is64Bit)
+            {
+                parameters = $"{PlexInstallParametersx64.Trim()} \"{logFile}\"";
+            }
+
             ProcessStartInfo startInfo = new ProcessStartInfo(
                 LatestInstallPackage.FilePath,
-                $"{PlexInstallParameters.Trim()} \"{logFile}\"");
+                parameters);
 
             OnMessageChanged($"Run Plex installation - '{startInfo.FileName} {startInfo.Arguments}'.");
             using (Process install = Process.Start(startInfo))

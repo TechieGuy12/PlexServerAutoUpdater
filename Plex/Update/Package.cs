@@ -43,6 +43,11 @@ namespace TE.Plex.Update
         private HttpClient _client = new HttpClient();
 
         /// <summary>
+        /// The value indicating if Plex is 64-bit.
+        /// </summary>
+        private bool _is64Bit = false;
+
+        /// <summary>
         /// The local application data folder for Plex.
         /// </summary>
         private string _updatesFolder;
@@ -92,12 +97,14 @@ namespace TE.Plex.Update
         public Package(
             string updatesFolder,
             UpdateChannel updateChannel,
-            string token)
+            string token,
+            bool is64Bit)
         {
             _updatesFolder =
                updatesFolder ?? throw new ArgumentNullException(nameof(updatesFolder));
             _updateChannel = updateChannel;
             _token = token ?? throw new ArgumentNullException(nameof(token));
+            _is64Bit = is64Bit;
         }
         #endregion
 
@@ -173,7 +180,7 @@ namespace TE.Plex.Update
                 return null;
             }
 
-            string url = LatestWindowsVersion.Releases[0].Url;
+            string url = LatestWindowsVersion.GetUrl(_is64Bit);
             if (string.IsNullOrEmpty(url))
             {
                 OnMessageChanged("WARN: The URL for the Windows release was not specified.");
@@ -391,7 +398,7 @@ namespace TE.Plex.Update
             }
 
             // Verify that the URL for the latest release has been stored
-            string url = LatestWindowsVersion.Releases[0].Url;
+            string url = LatestWindowsVersion.GetUrl(_is64Bit);
             if (string.IsNullOrEmpty(url))
             {
                 OnMessageChanged(
@@ -592,7 +599,7 @@ namespace TE.Plex.Update
 
             OnMessageChanged("Checking if the installation package is valid.");
             bool isValid =
-                checksum.Equals(LatestWindowsVersion.Releases[0].CheckSum);
+                checksum.Equals(LatestWindowsVersion.GetCheckSum(_is64Bit));
 
             if (isValid)
             {
@@ -603,6 +610,17 @@ namespace TE.Plex.Update
                 OnMessageChanged("The package is not valid. The checksums match.");
             }
             return isValid;
+        }
+
+        /// <summary>
+        /// Returns the string representation for this object.
+        /// </summary>
+        /// <returns>
+        /// The string value.
+        /// </returns>
+        public override string ToString()
+        {
+            return FilePath;
         }
         #endregion
     }

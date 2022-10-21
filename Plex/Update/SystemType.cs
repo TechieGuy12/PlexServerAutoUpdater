@@ -13,6 +13,15 @@ namespace TE.Plex.Update
     public class SystemType
     {
         /// <summary>
+        /// Name of the 32-bit build.
+        /// </summary>
+        private const string BUILD32BIT = "windows-x86";
+        /// <summary>
+        /// Name of the 64-bit build.
+        /// </summary>
+        private const string BUILD64BIT = "windows-x86_64";
+
+        /// <summary>
         /// The ID of the system type.
         /// </summary>
         [JsonProperty("id")]
@@ -68,5 +77,66 @@ namespace TE.Plex.Update
         /// </summary>
         [JsonProperty("releases")]
         public List<Release> Releases { get; set; } = new List<Release>();
+
+        /// <summary>
+        /// Gets the download URL based on whether the 32-bit or 64-bit
+        /// version of Plex Media Server is to be downloaded.
+        /// </summary>
+        /// <param name="is64Bit">
+        /// Flag indicating which version of Plex Media Server is installed.
+        /// </param>
+        /// <returns>
+        /// The URL for the version of Plex Media Server, otherwise <c>null</c>.
+        /// </returns>
+        public string GetUrl(bool is64Bit)
+        {
+            foreach (Release release in Releases)
+            {
+                if (release.Build.Equals(BUILD32BIT, StringComparison.OrdinalIgnoreCase)
+                    && !is64Bit)
+                {
+                    return release.Url;
+                }
+
+                if (release.Build.Equals(BUILD64BIT, StringComparison.OrdinalIgnoreCase)
+                    && is64Bit)
+                {
+                    return release.Url;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the checksum based on whether the 32-bit or 64-bit version of
+        /// Plex Media Server is to be downloaded.
+        /// </summary>
+        /// <param name="is64Bit">
+        /// Flag indicating which version of Plex Media Server is installed.
+        /// </param>
+        /// <returns>
+        /// The checksum for the installation file of Plex Media Server,
+        /// otherwise <c>null</c>.
+        /// </returns>
+        public string GetCheckSum(bool is64Bit)
+        {
+            foreach (Release release in Releases)
+            {
+                if (release.Build.Equals(BUILD32BIT, StringComparison.OrdinalIgnoreCase)
+                    && !is64Bit)
+                {
+                    return release.CheckSum;
+                }
+
+                if (release.Build.Equals(BUILD64BIT, StringComparison.OrdinalIgnoreCase)
+                    && is64Bit)
+                {
+                    return release.CheckSum;
+                }
+            }
+
+            return null;
+        }
     }
 }

@@ -90,6 +90,7 @@ namespace TE.Plex
                 }
 
                 Log.Write(ex);
+                Log.Write(ex.StackTrace);
 
                 ExitCode = 1;
                 return 1;
@@ -128,8 +129,11 @@ namespace TE.Plex
                         return 1;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Log.Write(ex.Message);
+                    Log.Write(ex.StackTrace);
+
                     ExitCode = 1;
                     return 1;
                 }
@@ -165,6 +169,7 @@ namespace TE.Plex
                         MessageBoxIcon.Stop);
 
                     Log.Write(ex);
+                    Log.Write(ex.StackTrace);
 
                     ExitCode = 1;
                     return 1;

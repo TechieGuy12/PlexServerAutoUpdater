@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
-using Microsoft.Win32;
 using Msi = TE.LocalSystem.Msi;
 using TE.Plex.Update;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Security;
+using System.Configuration;
+using System.Runtime.InteropServices;
 
 namespace TE.Plex
 {
@@ -33,6 +33,22 @@ namespace TE.Plex
     /// </summary>
     public class MediaServer : EventSource
     {
+        /// <summary>
+        /// Needed to determine if the Plex Media Server process is 64-bit.
+        /// </summary>
+        /// <param name="hProcess">
+        /// The Plex process handle.
+        /// </param>
+        /// <param name="lpSystemInfo">
+        /// The value indicating if the process is 64-bit.
+        /// </param>
+        /// <returns>
+        /// Returns none-zero if the function succeeds, otherwise zero.
+        /// </returns>
+        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWow64Process([In] IntPtr hProcess, [Out] out bool lpSystemInfo);
+
         #region Delegates
         /// <summary>
         /// The delegate for the play count changed event.
@@ -96,31 +112,43 @@ namespace TE.Plex
         /// <summary>
         /// The DisplayName of the Plex Media Server installation.
         /// </summary>
-        private const string DisplayName = "Plex Media Server";
+        private static string DisplayName = ConfigurationManager.AppSettings["PlexServiceName"];
         /// <summary>
         /// The name of the Plex Media Server executable.
         /// </summary>
-        private const string PlexExecutable = "Plex Media Server.exe";
+        private static string PlexExecutable = ConfigurationManager.AppSettings["PlexExecutable"];
         /// <summary>
         /// The name of the Plex updates folder.
         /// </summary>
-        private const string PlexUpdatesFolder = @"Plex Media Server\Updates";
+        private static string PlexUpdatesFolder = ConfigurationManager.AppSettings["PlexUpdatesFolder"];
         /// <summary>
         /// The name of the installation packages folder.
         /// </summary>
-        private const string PlexPackagesFolder = "packages";
+        private static string PlexPackagesFolder = ConfigurationManager.AppSettings["PlexPackagesFolder"];
         /// <summary>
         /// Plex Media Server installation parameters.
         /// </summary>
-        private const string PlexInstallParameters = "/install /quiet /norestart /log ";
+        private static string PlexInstallParameters = ConfigurationManager.AppSettings["PlexInstallParameters"];
+        /// <summary>
+        /// Plex Media Server x64 installation parameters.
+        /// </summary>
+        private static string PlexInstallParametersx64 = ConfigurationManager.AppSettings["PlexInstallParametersx64"];
         /// <summary>
         /// Plex Media Server installation log subfolder.
         /// </summary>
-        private const string PlexInstallLogFolder = @"PlexUpdater";
+        private static string PlexInstallLogFolder = ConfigurationManager.AppSettings["PlexInstallLogFolder"];
         /// <summary>
         /// Plex Media Server installation log file name.
         /// </summary>
-        private const string PlexInstallLogFile = "PlexMediaServerInstall.log";
+        private static string PlexInstallLogFile = ConfigurationManager.AppSettings["PlexInstallLogFile"];
+        /// <summary>
+        /// The root Plex installation folder.
+        /// </summary>
+        private static string PlexFolder = "Plex";
+        /// <summary>
+        /// The subfolder in the Plex installation folder.
+        /// </summary>
+        private static string PlexSubFolder = "Plex Media Server";
         /// <summary>
         /// Maxiumum path length.
         /// </summary>
@@ -164,6 +192,11 @@ namespace TE.Plex
         /// Gets the path to the Plex Media Server installation.
         /// </summary>
         public string InstallFolder { get; private set; }
+
+        /// <summary>
+        /// Gets the value indicating if Plex Media Server is 64-bit.
+        /// </summary>
+        public bool Is64Bit { get; private set; }
 
         /// <summary>
         /// Gets the full path to the latest installation package that has
@@ -300,7 +333,8 @@ namespace TE.Plex
             Package availableVersion = new Package(
                 UpdatesFolder, 
                 UpdateChannel,
-                token);
+                token,
+                Is64Bit);
             availableVersion.MessageChanged += Message_Changed;
 
             if (availableVersion != null)
@@ -362,8 +396,17 @@ namespace TE.Plex
             // To avoid using the Windows Installer API, let's first check well
             // known paths to find the Plex install location
             List<string> defaultLocations = new List<string>();
-            defaultLocations.Add(@"C:\Program Files (x86)\Plex\Plex Media Server");
-            defaultLocations.Add(@"C:\Program Files\Plex\Plex Media Server");
+            string programFilesX86 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%");
+            if (!string.IsNullOrWhiteSpace(programFilesX86))
+            {
+                defaultLocations.Add(Path.Combine(programFilesX86, PlexFolder, PlexSubFolder));
+            }
+            
+            string programFiles = Environment.ExpandEnvironmentVariables("%ProgramW6432%");
+            if (!string.IsNullOrWhiteSpace(programFiles))
+            {
+                defaultLocations.Add(Path.Combine(programFiles, PlexFolder, PlexSubFolder));
+            }
 
             foreach (string location in defaultLocations)
             {
@@ -500,8 +543,20 @@ namespace TE.Plex
             LocalDataFolder = plexRegistry.GetLocalDataFolder();
             if (string.IsNullOrEmpty(LocalDataFolder))
             {
-                throw new PlexDataFolderNotFoundException(
-                    "The Plex local application data folder could not be found for the Plex Windows account.");
+                try
+                {
+                    LocalDataFolder = ConfigurationManager.AppSettings["PlexLocalAppDataFolder"];
+                }
+                catch
+                {
+                    LocalDataFolder = null;
+                }
+
+                if (string.IsNullOrWhiteSpace(LocalDataFolder))
+                {
+                    throw new PlexDataFolderNotFoundException(
+                        "The Plex local application data folder could not be found for the Plex Windows account.");
+                }
             }
             OnMessageChanged($"Plex local data folder: {LocalDataFolder}.");
 
@@ -511,6 +566,9 @@ namespace TE.Plex
 
             UpdateChannel = plexRegistry.GeUpdateChannel();
             OnMessageChanged($"Update channel: {UpdateChannelName}.");
+
+            GetBitness();
+            OnMessageChanged($"64-bit: {Is64Bit}.");
 
             GetVersions();
             OnMessageChanged($"Current version: {CurrentVersion}.");
@@ -537,6 +595,12 @@ namespace TE.Plex
         /// </summary>
         private void RunInstall()
         {
+            if (!File.Exists(LatestInstallPackage.FilePath))
+            {
+                OnMessageChanged("The latest Plex installation package does not exist on the local machine.");
+                return;
+            }
+
             OnMessageChanged("Starting Plex installation.");            
             string logFile = GetInstallLogFilePath();
             if (string.IsNullOrWhiteSpace(logFile))
@@ -551,11 +615,19 @@ namespace TE.Plex
                 File.Delete(logFile);
             }
 
+            // Default to the 32-bit parameter installation, but change to the
+            // 64-bit parameters if the 64-bit version of Plex is installed
+            string parameters = $"{PlexInstallParameters.Trim()} \"{logFile}\"";
+            if (Is64Bit)
+            {
+                parameters = $"{PlexInstallParametersx64.Trim()} \"{logFile}\"";
+            }
+
             ProcessStartInfo startInfo = new ProcessStartInfo(
                 LatestInstallPackage.FilePath,
-                PlexInstallParameters + logFile);
+                parameters);
 
-            OnMessageChanged("Run Plex installation.");
+            OnMessageChanged($"Run Plex installation - '{startInfo.FileName} {startInfo.Arguments}'.");
             using (Process install = Process.Start(startInfo))
             {
                 install.WaitForExit();
@@ -585,23 +657,78 @@ namespace TE.Plex
             }
 
             // Check to see if any processes are still running
-            processes = Process.GetProcessesByName(processName);
+            processes = Process.GetProcessesByName(fileName);
             if (processes.Count() > 0)
             {
-                // Use the nuclear way of killing the processes
-                foreach (Process proc in processes)
+                using (Process process = new Process())
                 {
-                    using (Process process = new Process())
+                    process.StartInfo = new ProcessStartInfo
                     {
-                        process.StartInfo = new ProcessStartInfo
-                        {
-                            FileName = "taskkill.exe",
-                            Arguments = $" /IM {processName} /F"
-                        };
-                        process.Start();
-                        process.WaitForExit();
-                    }
+                        FileName = "taskkill.exe",
+                        Arguments = $"/F /IM \"{processName}\""
+                    };
+                    process.Start();
+                    process.WaitForExit();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets the value indicating if the installed version of Plex Media
+        /// Server is 64-bit.
+        /// </summary>
+        private void GetBitness()
+        {
+            Is64Bit = false;
+            if (!Environment.Is64BitOperatingSystem)
+            {
+                return;
+            }
+
+            string programFiles = Environment.ExpandEnvironmentVariables("%ProgramW6432%");
+            if (string.IsNullOrWhiteSpace(programFiles))
+            {
+                return;
+            }
+
+            try
+            {
+                string plexPath = Path.Combine(programFiles, PlexFolder, PlexSubFolder, PlexExecutable);
+                if (File.Exists(plexPath))
+                {
+                    OnMessageChanged($"Plex found in: {plexPath}.");
+                    // Set the flag, but continue to determine if the Plex
+                    // process is also 64-bit to confirm this. We will keep
+                    // this value in case Plex isn't running and we can't
+                    // get the value using the process.
+                    Is64Bit = true;
+                }
+            }
+            catch (Exception ex)
+                when (ex is ArgumentException || ex is ArgumentNullException)
+            {
+                OnMessageChanged($"Couldn't determine if Plex is 64-bit. Treating Plex as 32-bit. Reason: {ex.Message}");
+                return;
+            }
+
+            try
+            {
+                Process[] processes = Process.GetProcessesByName(PlexExecutable);
+                if (processes.Count() > 0)
+                {
+                    bool retVal;
+                    if (!IsWow64Process(Process.GetCurrentProcess().Handle, out retVal))
+                    {
+                        OnMessageChanged($"Couldn't determine if Plex is 64-bit. Treating Plex as 32-bit.");
+                        return;
+                    }
+                    Is64Bit = retVal;
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                OnMessageChanged($"Couldn't determine if Plex is 64-bit. Treating Plex as 32-bit. Reason: {ex.Message}");
+                return;
             }
         }
         #endregion

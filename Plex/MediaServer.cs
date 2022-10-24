@@ -418,6 +418,16 @@ namespace TE.Plex
                 }
             }
 
+            // If the standard install paths were not in use, then try and get
+            // the installation path from the Plex registry key
+            if (string.IsNullOrWhiteSpace(installPath))
+            {
+                if (plexRegistry != null)
+                {
+                    installPath = plexRegistry.GetInstallFolder();
+                }
+            }
+
             // If the install path does not contain a value, then if the Plex
             // Media Server is running, let's try and get the path from the
             // process
@@ -520,14 +530,6 @@ namespace TE.Plex
                     "The Plex Media Server is not installed.");
             }
 
-            InstallFolder = GetInstallPath();
-            if (string.IsNullOrWhiteSpace(InstallFolder))
-            {
-                throw new AppNotInstalledException(
-                    "Plex does not appear to be installed as the Plex installation folder could not be determined.");
-            }
-            OnMessageChanged($"Plex install folder: {InstallFolder}.");
-
             // Populate a service object with information about the Plex
             // service
             plexService = new ServerService();
@@ -538,6 +540,14 @@ namespace TE.Plex
             }
 
             plexRegistry = new Registry(plexService.LogOnUser);
+
+            InstallFolder = GetInstallPath();
+            if (string.IsNullOrWhiteSpace(InstallFolder))
+            {
+                throw new AppNotInstalledException(
+                    "Plex does not appear to be installed as the Plex installation folder could not be determined.");
+            }
+            OnMessageChanged($"Plex install folder: {InstallFolder}.");
 
             // Get the Plex folders
             LocalDataFolder = plexRegistry.GetLocalDataFolder();

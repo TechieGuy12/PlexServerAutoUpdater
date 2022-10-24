@@ -39,6 +39,11 @@ namespace TE.Plex
         private const string RegistryPlexDataPathValueName = "LocalAppDataPath";
 
         /// <summary>
+        /// The location of the Plex installation.
+        /// </summary>
+        private const string RegistryInstallFolder = "InstallFolder";
+
+        /// <summary>
         /// The user running the Plex server application.
         /// </summary>
         private WindowsUser user;
@@ -148,6 +153,27 @@ namespace TE.Plex
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Gets the location of the Plex installation folder.
+        /// </summary>
+        /// <returns>
+        /// The location of the Plex installation folder, otherwise <c>null</c>.
+        /// </returns>
+        internal string GetInstallFolder()
+        {
+            try
+            {
+                // Get the Plex local data folder from the users registry hive
+                // for the user ID associated with the Plex service
+                return (string)GetValue(RegistryInstallFolder);
+            }
+            catch (Exception ex)
+                when (ex is ArgumentNullException || ex is ObjectDisposedException || ex is SecurityException || ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return null;
+            }
         }
 
         /// <summary>

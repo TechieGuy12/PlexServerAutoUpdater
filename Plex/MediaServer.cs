@@ -142,6 +142,10 @@ namespace TE.Plex
         /// </summary>
         private static string PlexInstallLogFile = ConfigurationManager.AppSettings["PlexInstallLogFile"];
         /// <summary>
+        /// Plex Media Server installation log file name.
+        /// </summary>
+        private static string PlexInstallLocation = ConfigurationManager.AppSettings["PlexInstallLocation"];
+        /// <summary>
         /// The root Plex installation folder.
         /// </summary>
         private static string PlexFolder = "Plex";
@@ -393,28 +397,38 @@ namespace TE.Plex
         {
             string installPath = null;
 
-            // To avoid using the Windows Installer API, let's first check well
-            // known paths to find the Plex install location
-            List<string> defaultLocations = new List<string>();
-            string programFilesX86 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%");
-            if (!string.IsNullOrWhiteSpace(programFilesX86))
+            // If the install location was specified in the config file, then
+            // use that value
+            if (!string.IsNullOrWhiteSpace(PlexInstallLocation))
             {
-                defaultLocations.Add(Path.Combine(programFilesX86, PlexFolder, PlexSubFolder));
-            }
-            
-            string programFiles = Environment.ExpandEnvironmentVariables("%ProgramW6432%");
-            if (!string.IsNullOrWhiteSpace(programFiles))
-            {
-                defaultLocations.Add(Path.Combine(programFiles, PlexFolder, PlexSubFolder));
+                installPath = PlexInstallLocation;
             }
 
-            foreach (string location in defaultLocations)
+            if (string.IsNullOrWhiteSpace(installPath))
             {
-                string path = Path.Combine(location, PlexExecutable);
-                if (File.Exists(path))
+                // To avoid using the Windows Installer API, let's first check well
+                // known paths to find the Plex install location
+                List<string> defaultLocations = new List<string>();
+                string programFilesX86 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%");
+                if (!string.IsNullOrWhiteSpace(programFilesX86))
                 {
-                    installPath = Path.GetDirectoryName(path);
-                    break;
+                    defaultLocations.Add(Path.Combine(programFilesX86, PlexFolder, PlexSubFolder));
+                }
+
+                string programFiles = Environment.ExpandEnvironmentVariables("%ProgramW6432%");
+                if (!string.IsNullOrWhiteSpace(programFiles))
+                {
+                    defaultLocations.Add(Path.Combine(programFiles, PlexFolder, PlexSubFolder));
+                }
+
+                foreach (string location in defaultLocations)
+                {
+                    string path = Path.Combine(location, PlexExecutable);
+                    if (File.Exists(path))
+                    {
+                        installPath = Path.GetDirectoryName(path);
+                        break;
+                    }
                 }
             }
 

@@ -366,6 +366,7 @@ namespace TE.Plex
         {
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             {
+                OnMessageChanged($"Couldn't get the file version. The file '{filePath}' was not found.");
                 return default;
             }
 
@@ -373,12 +374,25 @@ namespace TE.Plex
             {
                 FileVersionInfo version =
                     FileVersionInfo.GetVersionInfo(filePath);
+                if (string.IsNullOrEmpty(version.FileVersion))
+                {
+                    OnMessageChanged($"The version for file '{filePath}' could not be retrieved.");
+                    return default;
+                }
 
-                Version.TryParse(version.FileVersion, out Version convertedVersion);
-                return convertedVersion;
+                if (Version.TryParse(version.FileVersion, out Version convertedVersion))
+                {
+                    return convertedVersion;
+                }
+                else
+                {
+                    OnMessageChanged($"The version for '{filePath}' is '{version.FileVersion}, which could not be parsed.");
+                    return default;
+                }
             }
             catch (FileNotFoundException)
             {
+                OnMessageChanged($"Couldn't get the file version. The file '{filePath}' was not found.");
                 return default;
             }
         }
@@ -862,6 +876,17 @@ namespace TE.Plex
         /// </returns>
         public bool IsUpdateAvailable()
         {
+            if (CurrentVersion == null || CurrentVersion == default)
+            {
+                OnMessageChanged($"Could not check if update is available. The installed Plex version could not be determined.");
+                return false;
+            }
+
+            if (LatestVersion == null || LatestVersion == default)
+            {
+                OnMessageChanged($"Could not check if update is available. The latest version of Plex could not be determined.");
+                return false;
+            }
             return (CurrentVersion.CompareTo(LatestVersion) < 0);
         }
 

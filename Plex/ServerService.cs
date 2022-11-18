@@ -21,6 +21,10 @@ namespace TE.Plex
         private static string ServiceName = ConfigurationManager.AppSettings["PlexServiceName"];
         #endregion
 
+        // Flag indicating the service display name has been specified instead
+        // of the service name
+        private static bool _usingDisplayName = false;
+
         #region Properties
         /// <summary>
         /// Gets the user ID used to run the service.
@@ -78,21 +82,52 @@ namespace TE.Plex
             if (IsInstalled())
             {
                 Log.Write("The Plex service is installed. Let's get the user associated with the service.");
-                ManagementObject service =
-                    new ManagementObject(
-                        $"Win32_Service.Name='{ServiceName}'");
 
-                if (service == null)
+                // Set the service property to be used to find the service
+                // using the ManagementObject
+                string serviceProperty = "Name";
+                if (_usingDisplayName)
                 {
-                    Log.Write("The service user could not be found.");
-                    return null;
+                    serviceProperty = "DisplayName";
                 }
 
-                service.Get();
-                user = new WindowsUser(service["startname"].ToString().Replace(
-                    @".\", $"{MachineName}\\"));
+                try
+                {
+                    // The query to get the service that matches either the name or display name
+                    SelectQuery sQuery = 
+                        new SelectQuery(
+                            $"SELECT StartName FROM Win32_Service where {serviceProperty} = '{ServiceName}'");
 
-                Log.Write($"The Plex service user: {user.Name}.");
+                    using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(sQuery))
+                    {
+                        if (searcher == null)
+                        {
+                            Log.Write("The service user could not be found.");
+                            return null;
+                        }
+                        
+                        using (ManagementObjectCollection services = searcher.Get())
+                        {
+                            if (services == null || services.Count == 0)
+                            {
+                                Log.Write("The service user could not be found.");
+                                return null;
+                            }
+
+                            foreach (ManagementObject service in searcher.Get())
+                            {
+                                user = new WindowsUser(
+                                        service["startname"].ToString().Replace(@".\", $"{MachineName}\\"));
+
+                                Log.Write($"The Plex service user: {user.Name}.");
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Write($"Could not get the service user. Reason: {e.Message}");
+                }
             }
             else
             {
@@ -112,8 +147,29 @@ namespace TE.Plex
         /// </returns>
         public static bool IsInstalled()
         {
-            return ServiceController.GetServices().Any(
-                s => s.ServiceName == ServiceName);
+            try
+            {
+                bool isInstalled =
+                    ServiceController.GetServices().Any(s => s.ServiceName == ServiceName);
+
+                // If the service could not be found using the service name,
+                // try to get the service using the display name, and set the
+                // display name flag depending on the result
+                if (!isInstalled)
+                {
+                    isInstalled = 
+                        ServiceController.GetServices().Any(s => s.DisplayName == ServiceName);
+                    _usingDisplayName = isInstalled;
+                }
+
+                return isInstalled;
+
+            }
+            catch (System.ComponentModel.Win32Exception e)
+            {
+                Log.Write($"Couldn't check if service is installed. Reason: {e.Message}");
+                return false;
+            }
         }
 
         /// <summary>
